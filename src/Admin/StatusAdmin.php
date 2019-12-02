@@ -67,7 +67,7 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
         }
         ');
 
-        Requirements::javascript("isobar/silverstripe-flow:client/js/FlowSyncAction.js");
+        Requirements::javascript("isobar-nz/silverstripe-flow:client/js/FlowSyncAction.js");
     }
 
     /**

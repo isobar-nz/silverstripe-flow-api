@@ -26,7 +26,14 @@
     "require-dev": {
         "phpunit/phpunit": "^5.7"
     },
-    "extra": [],
+    "extra": {
+        "expose": [
+            "client"
+        ],
+        "branch-alias": {
+            "dev-master": "1.x-dev"
+        }
+    },
     "autoload": {
         "psr-4": {
             "Isobar\\Flow\\": "src/",
