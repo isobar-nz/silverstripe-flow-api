@@ -1,0 +1,19 @@
+SwipeStripe\Order\Checkout\CheckoutPage:
+  checkout:
+    Title: Checkout
+    URLSegment: checkout
+
+SwipeStripe\Order\OrderConfirmationPage:
+  order-confirmation:
+    Title: Order Confirmed
+    URLSegment: order-confirmation
+
+SwipeStripe\Order\Cart\ViewCartPage:
+  view-cart:
+    Title: Cart
+    URLSegment: cart
+
+SwipeStripe\Order\ViewOrderPage:
+  view-order:
+    Title: Order
+    URLSegment: view-order

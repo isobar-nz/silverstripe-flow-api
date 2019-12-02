@@ -1,0 +1,41 @@
+App\Ecommerce\Product\WineProduct:
+  barrique:
+    Title: Barrique Fermented Gisborne Chardonnay
+    Description: "Styled to capture the regional essence of Gisborne, the Barrique offers a complex medley of fresh stone fruit aromas with hints of tropical fruits and smoky grilled nut characters."
+    BasePriceCurrency: NZD
+    BasePriceAmount: 3999 # $10.00
+    ForecastGroup: VMRCHARG
+  vmcalbag:
+    Title: VM CS Albarino 2017 Gisborne 750mL 6-Pk NZ
+    BasePriceCurrency: NZD
+    BasePriceAmount: 1499
+    ForecastGroup: VMCALBAG
+
+SwipeStripe\Common\Product\ComplexProduct\ProductAttribute:
+  vintage:
+    Title: Vintage
+    Product: =>App\Ecommerce\Product\WineProduct.barrique
+
+SwipeStripe\Common\Product\ComplexProduct\ProductAttributeOption:
+  vintage-2017:
+    Title: 2017
+    PriceModifierCurrency: NZD
+    PriceModifierAmount: 1000
+    ProductAttribute: =>SwipeStripe\Common\Product\ComplexProduct\ProductAttribute.vintage
+
+  vintage-2016:
+    Title: 2016
+    PriceModifierCurrency: NZD
+    PriceModifierAmount: 0
+    ProductAttribute: =>SwipeStripe\Common\Product\ComplexProduct\ProductAttribute.vintage
+
+SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation:
+  barrique-vintage-2017:
+    SKU: VMRCHARG176Z
+    Product: =>App\Ecommerce\Product\WineProduct.barrique
+    ProductAttributeOptions: =>SwipeStripe\Common\Product\ComplexProduct\ProductAttributeOption.vintage-2017
+
+  barrique-vintage-2016:
+    SKU: VMRCHARG166Z
+    Product: =>App\Ecommerce\Product\WineProduct.barrique
+    ProductAttributeOptions: =>SwipeStripe\Common\Product\ComplexProduct\ProductAttributeOption.vintage-2016

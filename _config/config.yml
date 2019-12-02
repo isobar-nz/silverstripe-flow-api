@@ -1,0 +1,7 @@
+---
+Name: silverstripe-flow-config
+---
+
+SwipeStripe\Order\Order:
+  extensions:
+    - Isobar\Flow\Order\OrderExtension

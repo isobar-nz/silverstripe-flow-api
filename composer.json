@@ -1,0 +1,38 @@
+{
+    "name": "isobar-nz/silverstripe-flow",
+    "type": "silverstripe-vendormodule",
+    "description": "Module for product sync and integration between SwipeStripe and the Flow API",
+    "license": "BSD-3-Clause",
+    "keywords": [
+        "silverstripe",
+        "flow",
+        "ecommerce"
+    ],
+    "authors": [
+        {
+            "name": "SilverStripe",
+            "homepage": "http://silverstripe.com"
+        },
+        {
+            "name": "Danae Miller-Clendon",
+            "email": "danae.miller-clendon@isobar.com",
+            "role": "Maintainer"
+        }
+    ],
+    "require": {
+        "swipestripe/swipestripe": "5.0.x-dev",
+        "silverstripe/framework": "^4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5.7"
+    },
+    "extra": [],
+    "autoload": {
+        "psr-4": {
+            "Isobar\\Flow\\": "src/",
+            "Isobar\\Flow\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

@@ -1,0 +1,28 @@
+App\Flow\Model\ScheduledWineProduct:
+  vmcalbag:
+    ForecastGroup: VMCALBAG
+    Description: VM CS Albarino 2017 Gisborne 750mL 6-Pk NZ
+    BasePrice: 17.99
+    Status: Pending
+
+App\Flow\Model\ScheduledWineVariation:
+  vmcalbag17:
+    ForecastGroup: VMCALBAG
+    SKU: VMCALBAG176Z
+    PriceModifierAmount: 0.00
+    Status: Pending
+    Title: 2017
+    ScheduledProduct: =>Isobar\Flow\Model\ScheduledWineProduct.vmcalbag
+
+  vmcalbag18:
+    ForecastGroup: VMCALBAG
+    SKU: VMCALBAG186Z
+    PriceModifierAmount: 0.00
+    Status: Pending
+    Title: 2018
+    ScheduledProduct: =>Isobar\Flow\Model\ScheduledWineProduct.vmcalbag
+
+App\Flow\Model\CompletedTask:
+  task:
+    Title: Import Product Task 1
+    Status: Pending

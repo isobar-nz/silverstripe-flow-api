@@ -1,0 +1,14 @@
+<customerPriceList>
+    <customerPrice>
+        <market>NZ</market>
+        <webDebtorCode>VMWEBNZ1</webDebtorCode>
+        <forecastGroup>VMCALBAG</forecastGroup>
+        <productCode>VMCALBAG176Z</productCode>
+        <priceGroup>NZWB</priceGroup>
+        <retailPriceCase>107.94</retailPriceCase>
+        <currentSellingPriceCase>107.94</currentSellingPriceCase>
+        <retailPriceUnit>17.99</retailPriceUnit>
+        <currentSellingPriceUnit>17.99</currentSellingPriceUnit>
+        <lastModified>25-10-2019:07:43:10</lastModified>
+    </customerPrice>
+</customerPriceList>
