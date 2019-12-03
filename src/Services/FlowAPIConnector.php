@@ -4,7 +4,7 @@
 namespace Isobar\Flow\Services;
 
 
-use App\Config\RequiresConfig;
+use Isobar\Flow\Config\RequiresConfig;
 use Isobar\Flow\Services\Connector\BasicAuthConnector;
 use Isobar\Flow\Services\Connector\Connector;
 use SilverStripe\Core\Injector\Injectable;
