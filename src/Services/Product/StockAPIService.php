@@ -43,11 +43,13 @@ class StockAPIService implements ProductServiceInterface
 
         if (!empty($response['stockOnHandList'])) {
             foreach ($response['stockOnHandList']['stockOnHand'] as $product) {
-                $products[] = [
-                    'webDebtorCode' => $product['webDebtorCode'],
-                    'productCode'   => $product['productCode'],
-                    'stock'         => $product['stock']
-                ];
+                if (isset ($product['stock'])) {
+                    $products[] = [
+                        'webDebtorCode' => $product['webDebtorCode'],
+                        'productCode'   => $product['productCode'],
+                        'stock'         => $product['stock']
+                    ];
+                }
             }
         }
 
