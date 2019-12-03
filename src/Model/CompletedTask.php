@@ -180,14 +180,14 @@ class CompletedTask extends DataObject
 
             $email->setTo($adminEmail);
             $email->setReplyTo($adminEmail);
-            $email->setSubject('Error occurred during product import on Villa Maria site');
-            $email->setHTMLTemplate('App\Flow\Email\ErrorReportEmail.ss');
+            $email->setSubject('Error occurred during product import');
+            $email->setHTMLTemplate('Isobar\Flow\Email\ErrorReportEmail.ss');
 
             $email->setData([
                 'Errors'       => $this->getReadableErrors(),
                 'ViewMoreLink' => Controller::join_links(
                     AdminRootController::admin_url(),
-                    'flow/imports/App-Flow-Model-CompletedTask'
+                    'flow/imports/Isobar-Flow-Model-CompletedTask'
                 )
             ]);
 

@@ -87,14 +87,14 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
 
         $form->Fields()->addFieldsToTab('Root.Products', [
             HeaderField::create('ProductHeader', 'Product Status'),
-            LiteralField::create('ProductData', $this->renderWith('ModelAdmin\Includes\FlowStatusAdmin_status', [
+            LiteralField::create('ProductData', $this->renderWith('Isobar\Flow\ModelAdmin\Includes\StatusAdmin_status', [
                 'StatusData' => $this->getFlowStatus(EnvironmentSettings::PRODUCTS_URL)
             ]))
         ]);
 
         $form->Fields()->addFieldsToTab('Root.Stock', [
             HeaderField::create('ProductHeader', 'Stock Status'),
-            LiteralField::create('StockData', $this->renderWith('ModelAdmin\Includes\FlowStatusAdmin_status', [
+            LiteralField::create('StockData', $this->renderWith('Isobar\Flow\ModelAdmin\Includes\StatusAdmin_status', [
                 'StatusData' => $this->getFlowStatus(EnvironmentSettings::STOCK_URL)
             ]))
         ]);
@@ -102,7 +102,7 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
 
         $form->Fields()->addFieldsToTab('Root.Pricing', [
             HeaderField::create('ProductHeader', 'Pricing Status'),
-            LiteralField::create('PricingData', $this->renderWith('ModelAdmin\Includes\FlowStatusAdmin_status', [
+            LiteralField::create('PricingData', $this->renderWith('Isobar\Flow\ModelAdmin\Includes\StatusAdmin_status', [
                 'StatusData' => $this->getFlowStatus(EnvironmentSettings::PRICING_URL)
             ]))
         ]);
