@@ -2,16 +2,13 @@
 
 namespace Isobar\Flow\Model;
 
-use Isobar\Flow\Model\ScheduledWineVariation;
 use Isobar\Flow\Services\FlowStatus;
 use App\Traits\ReadOnlyDataObject;
+use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
-use SilverStripe\ORM\FieldType\DBBoolean;
 use SilverStripe\ORM\FieldType\DBDecimal;
 use SilverStripe\ORM\FieldType\DBHTMLText;
-use SilverStripe\ORM\FieldType\DBText;
 use SilverStripe\ORM\FieldType\DBVarchar;
-use SwipeStripe\Order\Order;
 
 /**
  * Class ScheduledWineProduct
@@ -22,7 +19,7 @@ use SwipeStripe\Order\Order;
  * @property string $Description
  * @property float $BasePrice
  * @property string $Status
- * @method \SilverStripe\ORM\DataList|\Isobar\Flow\Model\ScheduledWineVariation[] ScheduledVariations()
+ * @method DataList|\Isobar\Flow\Model\ScheduledWineVariation[] ScheduledVariations()
  */
 class ScheduledWineProduct extends DataObject
 {
@@ -43,7 +40,7 @@ class ScheduledWineProduct extends DataObject
         'ForecastGroup' => DBVarchar::class,
         'Description' => DBVarchar::class,
         'BasePrice' => DBDecimal::class,
-        'Status' => \Isobar\Flow\Services\FlowStatus::ENUM
+        'Status' => FlowStatus::ENUM
     ];
 
     private static $summary_fields = [
@@ -82,7 +79,7 @@ class ScheduledWineProduct extends DataObject
      */
     public function getIsComplete()
     {
-        return $this->Status == \Isobar\Flow\Services\FlowStatus::COMPLETED;
+        return $this->Status == FlowStatus::COMPLETED;
     }
 
     /**
@@ -96,7 +93,7 @@ class ScheduledWineProduct extends DataObject
 
         if (strpos($this->Status, FlowStatus::COMPLETED) !== false) {
             $html->setValue('<span style="color: #449d44;">' . $this->Status . '</span>');
-        } elseif (strpos($this->Status, \Isobar\Flow\Services\FlowStatus::FAILED) !== false) {
+        } elseif (strpos($this->Status, FlowStatus::FAILED) !== false) {
             $html->setValue('<span style="color: #ff0000;">' . $this->Status . '</span>');
         } else {
             $html->setValue('<span style="color: #ec971f;">' . $this->Status . '</span>');

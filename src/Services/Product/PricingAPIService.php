@@ -4,7 +4,6 @@
 namespace Isobar\Flow\Services\Product;
 
 
-use Isobar\Flow\Services\Product\ProductServiceInterface;
 use Isobar\Flow\Services\Connector\Connector;
 use Isobar\Flow\Services\EnvironmentSettings;
 use SilverStripe\Core\Environment;
@@ -15,7 +14,7 @@ class PricingAPIService implements ProductServiceInterface
     use Injectable;
 
     /**
-     * @var \Isobar\Flow\Services\Connector\Connector
+     * @var Connector
      */
     protected $connector;
 
@@ -26,7 +25,6 @@ class PricingAPIService implements ProductServiceInterface
 
     /**
      * @return array List of products
-     * @throws \SilverStripe\Control\HTTPResponse_Exception
      */
     public function products()
     {
@@ -35,7 +33,6 @@ class PricingAPIService implements ProductServiceInterface
 
     /**
      * @return array
-     * @throws \SilverStripe\Control\HTTPResponse_Exception
      */
     protected function getPricing()
     {

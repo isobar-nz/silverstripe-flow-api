@@ -4,7 +4,6 @@
 namespace Isobar\Flow\Services\Product;
 
 
-use Isobar\Flow\Services\Product\ProductServiceInterface;
 use Isobar\Flow\Services\Connector\Connector;
 use Isobar\Flow\Services\EnvironmentSettings;
 use Isobar\Flow\Services\Order\OrderServiceInterface;
@@ -35,6 +34,7 @@ class OrderAPIService implements OrderServiceInterface
     }
 
     /**
+     * @param string $body
      * @return array
      */
     protected function postOrder($body)
@@ -46,7 +46,7 @@ class OrderAPIService implements OrderServiceInterface
     }
 
     /**
-     * @return \Isobar\Flow\Services\Connector\Connector
+     * @return Connector
      */
     public function getConnector()
     {
@@ -54,7 +54,7 @@ class OrderAPIService implements OrderServiceInterface
     }
 
     /**
-     * @param \Isobar\Flow\Services\Connector\Connector $connector
+     * @param Connector $connector
      * @return $this
      */
     public function setConnector(Connector $connector)

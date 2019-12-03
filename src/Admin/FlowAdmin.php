@@ -4,20 +4,16 @@ declare(strict_types=1);
 namespace Isobar\Flow\Admin;
 
 use App\Extensions\ExtensionHelper;
-use Isobar\Flow\Services\FlowStatus;
+use Isobar\Flow\Forms\GridField\CompletedTask_ItemRequest;
+use Isobar\Flow\Forms\GridField\ScheduledOrder_ItemRequest;
 use Isobar\Flow\Model\CompletedTask;
 use Isobar\Flow\Model\ScheduledOrder;
 use Isobar\Flow\Model\ScheduledWineProduct;
 use Isobar\Flow\Model\ScheduledWineVariation;
-use Isobar\Flow\Services\FlowAPIConnector;
-use Isobar\Flow\Services\Product\OrderAPIService;
 use SilverStripe\Admin\ModelAdmin;
 use SilverStripe\Forms\Form;
-use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridFieldDetailForm;
-use SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest;
-use SilverStripe\ORM\ValidationResult;
 
 /**
  * Class ShippingAdmin
@@ -64,7 +60,7 @@ class FlowAdmin extends ModelAdmin
             /** @var GridFieldDetailForm $detailForm */
             $detailForm = $config->getComponentByType(GridFieldDetailForm::class);
 
-            $detailForm->setItemRequestClass(\Isobar\Flow\Forms\GridField\CompletedTask_ItemRequest::class);
+            $detailForm->setItemRequestClass(CompletedTask_ItemRequest::class);
         }
 
         // Scheduled Order
@@ -76,7 +72,7 @@ class FlowAdmin extends ModelAdmin
             /** @var GridFieldDetailForm $detailForm */
             $detailForm = $config->getComponentByType(GridFieldDetailForm::class);
 
-            $detailForm->setItemRequestClass(\Isobar\Flow\Forms\GridField\ScheduledOrder_ItemRequest::class);
+            $detailForm->setItemRequestClass(ScheduledOrder_ItemRequest::class);
         }
 
 

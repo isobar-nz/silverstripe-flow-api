@@ -2,6 +2,7 @@
 
 namespace Isobar\Flow\Admin;
 
+use Exception;
 use Isobar\Flow\Services\EnvironmentSettings;
 use Isobar\Flow\Tasks\ProcessProductsTask;
 use Isobar\Flow\Tasks\ProductImportTask;
@@ -11,7 +12,10 @@ use GuzzleHttp\RequestOptions;
 use LittleGiant\SinglePageAdmin\SinglePageAdmin;
 use Psr\Http\Message\ResponseInterface;
 use SilverStripe\Admin\LeftAndMain;
+use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Control\HTTPResponse_Exception;
 use SilverStripe\Core\Environment;
+use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\HeaderField;
 use SilverStripe\Forms\LiteralField;
@@ -73,7 +77,7 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
     /**
      * @param null $id
      * @param null $fields
-     * @return $this|null|\SilverStripe\Forms\Form
+     * @return $this|null|Form
      */
     public function getEditForm($id = null, $fields = null)
     {
@@ -105,7 +109,8 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
 
         $form->Actions()->push(
             FormAction::create('doFlowSync', 'Sync from Flow')
-                ->addExtraClass('btn-primary')
+                ->addExtraClass('btn btn-primary font-icon-sync')
+                ->setUseButtonTag(true)
         );
 
         return $form;
@@ -114,8 +119,8 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
     /**
      * @param $data
      * @param $form
-     * @return \SilverStripe\Control\HTTPResponse
-     * @throws \SilverStripe\Control\HTTPResponse_Exception
+     * @return HTTPResponse
+     * @throws HTTPResponse_Exception
      */
     public function doFlowSync($data, $form)
     {
@@ -134,7 +139,7 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
 
         try {
             $productTask->process();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $message = $e->getMessage();
             $code = $e->getCode();
         }
@@ -144,7 +149,7 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
 
         try {
             $productTask->process();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $message = $e->getMessage();
             $code = $e->getCode();
         }
@@ -154,7 +159,7 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
 
         try {
             $stockTask->process();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $message = $e->getMessage();
             $code = $e->getCode();
         }
@@ -170,7 +175,7 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
 
     /**
      * @param null $request
-     * @return null|\SilverStripe\Forms\Form|SinglePageAdmin
+     * @return null|Form|SinglePageAdmin
      */
     public function EditForm($request = null)
     {
@@ -184,16 +189,13 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
     public function getFlowStatus($endpoint)
     {
         try {
-//            $url = Environment::getEnv($endpoint);
-//
-//            $response = $this->rawRequest($url);
-//            $contents = $response->getBody()->getContents();
-//            $xml = new SimpleXMLElement($contents);
-//
-//            $pretty = $this->formatXmlString($contents);
+            $url = Environment::getEnv($endpoint);
 
-            $pretty = '';
-            $xml = [];
+            $response = $this->rawRequest($url);
+            $contents = $response->getBody()->getContents();
+            $xml = new SimpleXMLElement($contents);
+
+            $pretty = $this->formatXmlString($contents);
 
             if (!empty($xml)) {
                 return ArrayData::create([
@@ -207,7 +209,7 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
                     'Status'  => 'error'
                 ]);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return ArrayData::create([
                 'Message' => $e->getMessage(),
                 'Status'  => 'error'
@@ -217,8 +219,6 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
 
     /**
      * @param string $url
-     * @param string|null $basicAuth
-     * @param string|null $body
      * @return ResponseInterface
      */
     protected function rawRequest($url)
@@ -279,6 +279,7 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
         $token = strtok($xml, "\n");
         $result = ''; // holds formatted version as it is built
         $pad = 0; // initial indent
+        $indent = 0; // initial indent
         $matches = []; // returns from preg_matches()
 
         // scan each line and adjust indent based on opening/closing tags
@@ -287,18 +288,18 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
             // test for the various tag states
 
             // 1. open and closing tags on same line - no change
-            if (preg_match('/.+<\/\w[^>]*>$/', $token, $matches)) :
+            if (preg_match('/.+<\/\w[^>]*>$/', $token, $matches)) {
                 $indent = 0;
-            // 2. closing tag - outdent now
-            elseif (preg_match('/^<\/\w/', $token, $matches)) :
+                // 2. closing tag - outdent now
+            } elseif (preg_match('/^<\/\w/', $token, $matches)) {
                 $pad--;
-            // 3. opening tag - don't pad this one, only subsequent tags
-            elseif (preg_match('/^<\w[^>]*[^\/]>.*$/', $token, $matches)) :
+                // 3. opening tag - don't pad this one, only subsequent tags
+            } elseif (preg_match('/^<\w[^>]*[^\/]>.*$/', $token, $matches)) {
                 $indent = 1;
-            // 4. no indentation needed
-            else :
+                // 4. no indentation needed
+            } else {
                 $indent = 0;
-            endif;
+            }
 
             // pad the line with the required number of leading spaces
             $line = str_pad($token, strlen($token) + $pad, "\t", STR_PAD_LEFT);

@@ -2,8 +2,10 @@
 
 namespace Isobar\Flow\Tasks;
 
+use Exception;
 use Isobar\Flow\Tasks\Services\ProcessProducts;
 use Isobar\Flow\Tasks\Services\StockImport;
+use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\NullHTTPRequest;
 use SilverStripe\CronTask\Interfaces\CronTask;
 use SilverStripe\Dev\BuildTask;
@@ -46,7 +48,7 @@ class ProcessProductsTask extends BuildTask implements CronTask
     }
 
     /**
-     * @param \SilverStripe\Control\HTTPRequest $request
+     * @param HTTPRequest $request
      */
     public function run($request)
     {
@@ -56,7 +58,7 @@ class ProcessProductsTask extends BuildTask implements CronTask
 
         try {
             $flowService->runProcessData();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             echo $e->getMessage();
         }
 
@@ -65,7 +67,7 @@ class ProcessProductsTask extends BuildTask implements CronTask
 
         try {
             $flowStockService->runImport();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             echo $e->getMessage();
 
             return;

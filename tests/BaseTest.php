@@ -4,6 +4,7 @@
 namespace Isobar\Tests\Flow;
 
 use App\Tests\PublishesFixtures;
+use Exception;
 use Money\Currency;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
@@ -52,7 +53,7 @@ abstract class BaseTest extends SapphireTest
 
     /**
      * @param int $seconds
-     * @throws \Exception
+     * @throws Exception
      */
     protected function mockWait(int $seconds = 5): void
     {

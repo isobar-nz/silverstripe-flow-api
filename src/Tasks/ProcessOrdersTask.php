@@ -2,7 +2,9 @@
 
 namespace Isobar\Flow\Tasks;
 
+use Exception;
 use Isobar\Flow\Tasks\Services\ProcessOrders;
+use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\NullHTTPRequest;
 use SilverStripe\CronTask\Interfaces\CronTask;
 use SilverStripe\Dev\BuildTask;
@@ -45,7 +47,7 @@ class ProcessOrdersTask extends BuildTask implements CronTask
     }
 
     /**
-     * @param \SilverStripe\Control\HTTPRequest $request
+     * @param HTTPRequest $request
      */
     public function run($request)
     {
@@ -55,7 +57,7 @@ class ProcessOrdersTask extends BuildTask implements CronTask
 
         try {
             $flowService->runProcessData();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             echo $e->getMessage();
         }
     }

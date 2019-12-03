@@ -9,6 +9,7 @@ use Isobar\Flow\Model\ScheduledOrder;
 use Isobar\Flow\Services\Product\OrderAPIService;
 use App\Pages\MediaPages\WineClubEvent;
 use Exception;
+use SilverStripe\ORM\ValidationException;
 use SwipeStripe\Order\Status\OrderStatus;
 use SwipeStripe\Order\Status\OrderStatusUpdate;
 
@@ -27,7 +28,7 @@ class ProcessOrders
 
     /**
      * Processes all orders from scheduled list
-     * @throws \SilverStripe\ORM\ValidationException
+     * @throws ValidationException
      */
     public function runProcessData()
     {
@@ -40,7 +41,7 @@ class ProcessOrders
     }
 
     /**
-     * @throws \SilverStripe\ORM\ValidationException
+     * @throws ValidationException
      */
     private function processOrders()
     {
@@ -50,7 +51,7 @@ class ProcessOrders
         ])->limit(5);
 
         if ($scheduledOrders->count()) {
-            /** @var \Isobar\Flow\Model\ScheduledOrder $scheduledOrder */
+            /** @var ScheduledOrder $scheduledOrder */
             foreach ($scheduledOrders as $scheduledOrder) {
                 $scheduledOrder->setField('Status', FlowStatus::PROCESSING);
 
@@ -68,6 +69,7 @@ class ProcessOrders
 
                 // TODO update for Flow integration with Events
                 // if there are only events in the cart, then do not post to flow
+                /** @noinspection PhpUndefinedMethodInspection */
                 $items = $scheduledOrder->Order()->OrderItems();
                 $eventsCount = 0;
                 foreach ($items as $item) {
@@ -76,6 +78,7 @@ class ProcessOrders
                     }
                 }
 
+                /** @noinspection PhpUndefinedMethodInspection */
                 if ($eventsCount === $items->count()) {
                     // Some sort of error which we'll want to log
                     $statusUpdateData = [
@@ -89,6 +92,8 @@ class ProcessOrders
 
                     $this->OrdersSent++;
                 } else {
+                    $result = [];
+
                     try {
                         $api = OrderAPIService::singleton();
 

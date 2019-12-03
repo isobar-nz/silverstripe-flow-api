@@ -10,6 +10,7 @@ use Isobar\Flow\Model\ScheduledWineProduct;
 use Isobar\Flow\Model\ScheduledWineVariation;
 use App\Pages\ShopWinesPage;
 use Exception;
+use SilverStripe\ORM\ValidationException;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation_Options;
 use SwipeStripe\Common\Product\ComplexProduct\ProductAttribute;
@@ -37,7 +38,7 @@ class ProcessProducts
 
     /**
      * Processes all orders from scheduled list
-     * @throws \SilverStripe\ORM\ValidationException
+     * @throws ValidationException
      */
     public function runProcessData()
     {
@@ -50,11 +51,11 @@ class ProcessProducts
     }
 
     /**
-     * @throws \SilverStripe\ORM\ValidationException
+     * @throws ValidationException
      */
     private function processProducts()
     {
-        /** @var \Isobar\Flow\Model\CompletedTask $completedTask */
+        /** @var CompletedTask $completedTask */
         $completedTask = CompletedTask::get()->filter('Status', FlowStatus::PENDING)->first();
 
         if (!$completedTask) {
@@ -84,7 +85,7 @@ class ProcessProducts
                     $wineProductID = $this->processWineProduct($scheduledProduct);
 
                     $scheduledProduct->setField('Status', FlowStatus::COMPLETED);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     $scheduledProduct->setField('Status', FlowStatus::FAILED);
 
                     $completedTask->addError('Failed importing product: ' . $scheduledProduct->ForecastGroup . ': ' . $e->getMessage());
@@ -109,7 +110,7 @@ class ProcessProducts
                             $this->processWineVariation($scheduledVariation, $wineProductID);
 
                             $scheduledVariation->setField('Status', FlowStatus::COMPLETED);
-                        } catch (\Exception $e) {
+                        } catch (Exception $e) {
                             $scheduledVariation->setField('Status', FlowStatus::FAILED);
 
                             $completedTask->addError('Failed importing variation: ' . $scheduledVariation->SKU . ': ' . $e->getMessage());
@@ -250,7 +251,7 @@ class ProcessProducts
     }
 
     /**
-     * @param \Isobar\Flow\Model\ScheduledWineVariation $scheduledWineVariation
+     * @param ScheduledWineVariation $scheduledWineVariation
      * @param int $wineProductID
      * @return ComplexProductVariation
      * @throws Exception
@@ -311,6 +312,7 @@ class ProcessProducts
             $wineProductVariation = $variationOptions->ComplexProductVariation();
 
             // Check it has a SKU
+            /** @noinspection PhpUndefinedFieldInspection */
             if (!$wineProductVariation->SKU) {
                 $wineProductVariation->setField('SKU', $scheduledWineVariation->SKU);
                 $wineProductVariation->write();
@@ -344,7 +346,7 @@ class ProcessProducts
 
     /**
      * @param CompletedTask $completedTask
-     * @throws \SilverStripe\ORM\ValidationException
+     * @throws ValidationException
      */
     private function runDelete(CompletedTask $completedTask)
     {
@@ -358,7 +360,7 @@ class ProcessProducts
             $completedTask->Status = FlowStatus::COMPLETED;
             $completedTask->ProductsDeleted = $this->ProductsDeleted;
             $completedTask->write();
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             $completedTask->Status = FlowStatus::FAILED;
             $completedTask->addError($exception->getMessage());
             $completedTask->write();

@@ -3,16 +3,18 @@
 namespace Isobar\Flow\Forms\GridField;
 
 use Isobar\Flow\Model\CompletedTask;
+use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest;
+use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\ORM\ValidationResult;
 
 /**
  * Class CompletedTask_ItemRequest
  * @package App\Flow\Admin
  *
- * @property \Isobar\Flow\Model\CompletedTask $record
+ * @property CompletedTask $record
  */
 class CompletedTask_ItemRequest extends GridFieldDetailForm_ItemRequest
 {
@@ -23,7 +25,7 @@ class CompletedTask_ItemRequest extends GridFieldDetailForm_ItemRequest
     ];
 
     /**
-     * @return \SilverStripe\Control\HTTPResponse|Form
+     * @return HTTPResponse|Form
      */
     public function ItemEditForm()
     {
@@ -42,7 +44,7 @@ class CompletedTask_ItemRequest extends GridFieldDetailForm_ItemRequest
     /**
      * @param array $data
      * @param Form $form
-     * @return \SilverStripe\Control\HTTPResponse|\SilverStripe\ORM\FieldType\DBHTMLText
+     * @return HTTPResponse|DBHTMLText
      */
     public function doSendEmail($data, $form)
     {

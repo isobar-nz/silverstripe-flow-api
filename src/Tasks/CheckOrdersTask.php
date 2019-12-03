@@ -3,7 +3,7 @@
 namespace Isobar\Flow\Tasks;
 
 use Isobar\Flow\Order\OrderExtension;
-use Isobar\Flow\Tasks\Services\ProcessOrders;
+use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\NullHTTPRequest;
 use SilverStripe\CronTask\Interfaces\CronTask;
 use SilverStripe\Dev\BuildTask;
@@ -47,7 +47,7 @@ class CheckOrdersTask extends BuildTask implements CronTask
     }
 
     /**
-     * @param \SilverStripe\Control\HTTPRequest $request
+     * @param HTTPRequest $request
      */
     public function run($request)
     {

@@ -3,6 +3,7 @@
 
 namespace Isobar\Flow\Tasks\Services;
 
+use Exception;
 use Isobar\Flow\Config\FlowConfig;
 use Isobar\Flow\Services\FlowAPIConnector;
 use Isobar\Flow\Services\Product\StockAPIService;
@@ -19,7 +20,7 @@ class StockImport
 
     /**
      * Imports data from Flow XML feed
-     * @throws \Exception
+     * @throws Exception
      */
     public function runImport()
     {
@@ -37,7 +38,7 @@ class StockImport
 
     /**
      * @return bool
-     * @throws \Exception
+     * @throws Exception
      */
     private function importData()
     {
@@ -64,16 +65,18 @@ class StockImport
         foreach ($result as $stockOnHand) {
             $this->importStockData($stockOnHand);
         }
+
+        return true;
     }
 
     /**
      * @param array $stockOnHand
-     * @throws \Exception
+     * @throws Exception
      */
     public function importStockData(array $stockOnHand)
     {
         if (empty($stockOnHand)) {
-            throw new \Exception('Empty data');
+            throw new Exception('Empty data');
         }
 
         // Find or make forecast group

@@ -2,13 +2,17 @@
 
 namespace Isobar\Flow\Forms\GridField;
 
+use Exception;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
 use Isobar\Flow\Services\FlowAPIConnector;
 use Isobar\Flow\Services\Product\OrderAPIService;
+use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest;
+use SilverStripe\ORM\FieldType\DBHTMLText;
+use SilverStripe\ORM\ValidationException;
 use SilverStripe\ORM\ValidationResult;
 
 /**
@@ -26,7 +30,7 @@ class ScheduledOrder_ItemRequest extends GridFieldDetailForm_ItemRequest
     ];
 
     /**
-     * @return \SilverStripe\Control\HTTPResponse|Form
+     * @return HTTPResponse|Form
      */
     public function ItemEditForm()
     {
@@ -47,8 +51,8 @@ class ScheduledOrder_ItemRequest extends GridFieldDetailForm_ItemRequest
     /**
      * @param array $data
      * @param Form $form
-     * @return \SilverStripe\Control\HTTPResponse|\SilverStripe\ORM\FieldType\DBHTMLText
-     * @throws \SilverStripe\ORM\ValidationException
+     * @return HTTPResponse|DBHTMLText
+     * @throws ValidationException
      */
     public function doSendToFlow($data, $form)
     {
@@ -62,7 +66,7 @@ class ScheduledOrder_ItemRequest extends GridFieldDetailForm_ItemRequest
             $api->setConnector($connector);
 
             $result = $api->order($xmlData);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
 
             $form->sessionMessage('An error occurred: ' . $e->getMessage(), ValidationResult::TYPE_ERROR, ValidationResult::CAST_HTML);
 

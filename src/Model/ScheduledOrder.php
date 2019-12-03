@@ -4,11 +4,12 @@ namespace Isobar\Flow\Model;
 
 use Isobar\Flow\Services\FlowStatus;
 use App\Traits\ReadOnlyDataObject;
-use SilverStripe\Forms\FormField;
+use SilverStripe\Forms\FieldList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBBoolean;
 use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\ORM\FieldType\DBText;
+use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SwipeStripe\Order\Order;
 
@@ -21,7 +22,7 @@ use SwipeStripe\Order\Order;
  * @property boolean $Active
  * @property string $XmlData
  * @property int $OrderID
- * @method \SwipeStripe\Order\Order Order()
+ * @method Order Order()
  */
 class ScheduledOrder extends DataObject
 {
@@ -65,7 +66,7 @@ class ScheduledOrder extends DataObject
     ];
 
     /**
-     * @return \SilverStripe\Forms\FieldList
+     * @return FieldList
      */
     public function getCMSFields()
     {
@@ -120,7 +121,7 @@ class ScheduledOrder extends DataObject
     }
 
     /**
-     * @param \SilverStripe\Security\Member|null $member
+     * @param Member|null $member
      * @return bool
      */
     public function canEdit($member = null)

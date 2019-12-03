@@ -4,7 +4,6 @@ namespace Isobar\Flow\Model;
 
 use Isobar\Flow\Services\FlowStatus;
 use App\Traits\ReadOnlyDataObject;
-use Isobar\Flow\Model\ScheduledWineProduct;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDecimal;
 use SilverStripe\ORM\FieldType\DBHTMLText;

@@ -26,7 +26,7 @@ class ProductImport
      * Imports data from Flow XML feed
      *
      * @return \Isobar\Flow\Model\CompletedTask
-     * @throws \SilverStripe\ORM\ValidationException
+     * @throws ValidationException
      *
      */
     public function runImport()
@@ -63,22 +63,12 @@ class ProductImport
         // Get product data
 //        $result = ApiController::singleton()->getProducts();
 
-        try {
-            $api = ProductAPIService::singleton();
+        $api = ProductAPIService::singleton();
 
-            $connector = singleton(FlowAPIConnector::class);
-            $api->setConnector($connector);
+        $connector = singleton(FlowAPIConnector::class);
+        $api->setConnector($connector);
 
-            $result = $api->products();
-        } catch (HTTPResponse_Exception $e) {
-            $task->setField('Status', FlowStatus::CANCELLED);
-
-            $task->addError($e->getMessage());
-
-            $task->write();
-
-            return;
-        }
+        $result = $api->products();
 
         // Empty result triggers failure
         if (empty($result)) {
@@ -120,7 +110,7 @@ class ProductImport
     /**
      * @param array $product
      * @param \Isobar\Flow\Model\CompletedTask $task
-     * @throws \SilverStripe\ORM\ValidationException
+     * @throws ValidationException
      */
     public function importProductData(array $product, CompletedTask $task)
     {

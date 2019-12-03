@@ -5,7 +5,6 @@ namespace Isobar\Tests\Flow;
 
 
 use App\Ecommerce\Product\WineProduct;
-use Isobar\Tests\Flow\BaseTest;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\CompletedTask;
 use Isobar\Flow\Model\ScheduledWineProduct;
@@ -22,7 +21,7 @@ use Isobar\Tests\Flow\Fixtures\Fixtures;
 use Money\Money;
 use Prophecy\Prophecy\MethodProphecy;
 use Prophecy\Prophecy\ObjectProphecy;
-use SilverStripe\Dev\Debug;
+use SilverStripe\Control\HTTPResponse_Exception;
 use SilverStripe\ORM\ValidationException;
 use SimpleXMLElement;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProduct;
@@ -32,7 +31,6 @@ use SwipeStripe\Common\Product\ComplexProduct\ProductAttributeOption;
 use SwipeStripe\Order\Cart\ViewCartPage;
 use SwipeStripe\Order\Order;
 use SwipeStripe\Order\ViewOrderPage;
-use Symfony\Component\Process\Process;
 
 class FlowApiTest extends BaseTest
 {
@@ -65,9 +63,6 @@ class FlowApiTest extends BaseTest
      */
     protected $order;
 
-    /**
-     * @throws \SilverStripe\Control\HTTPResponse_Exception
-     */
     public function testGetProducts()
     {
         /** @var ObjectProphecy|ProductAPIService $dupeMock */
@@ -123,7 +118,7 @@ class FlowApiTest extends BaseTest
             $this->fail($e->getMessage());
         }
 
-        /** @var \Isobar\Flow\Model\ScheduledWineProduct $scheduledWineComplete */
+        /** @var ScheduledWineProduct $scheduledWineComplete */
         $scheduledWineComplete = ScheduledWineProduct::get()->byID($scheduledWine->ID);
 
         $this->assertEquals(FlowStatus::COMPLETED, $scheduledWineComplete->Status);
@@ -133,7 +128,7 @@ class FlowApiTest extends BaseTest
         $this->assertEquals(2, $variations->count());
 
         // These should both be COMPLETED
-        /** @var \Isobar\Flow\Model\ScheduledWineVariation $variation */
+        /** @var ScheduledWineVariation $variation */
         foreach ($variations as $variation) {
             $this->assertEquals(FlowStatus::COMPLETED, $variation->Status);
         }
@@ -164,9 +159,6 @@ class FlowApiTest extends BaseTest
         }
     }
 
-    /**
-     * @throws \SilverStripe\Control\HTTPResponse_Exception
-     */
     public function testGetStock()
     {
         /** @var ObjectProphecy|StockAPIService $dupeMock */
@@ -197,7 +189,7 @@ class FlowApiTest extends BaseTest
     }
 
     /**
-     * @throws \SilverStripe\Control\HTTPResponse_Exception
+     * @throws HTTPResponse_Exception
      */
     public function testGetPricing()
     {
@@ -234,9 +226,6 @@ class FlowApiTest extends BaseTest
         );
     }
 
-    /**
-     * @throws \SilverStripe\Control\HTTPResponse_Exception
-     */
     public function testPostOrder()
     {
         /** @var ComplexProductVariation $barrique2017 */
@@ -247,7 +236,7 @@ class FlowApiTest extends BaseTest
         $order->addItem($barrique2017);
         $order->Lock();
 
-        /** @var ObjectProphecy|\Isobar\Flow\Services\Product\OrderAPIService $dupeMock */
+        /** @var ObjectProphecy|OrderAPIService $dupeMock */
         $dupeMock = $this->prophesize(OrderAPIService::class);
 
         $data = $order->formatDataForFlow();
@@ -266,7 +255,7 @@ class FlowApiTest extends BaseTest
             'message' => "Order: '12345' successfully proccessed to Flow with Id: '{31DA2C48-70B3-43FC-B444-36424306A13D}'"
         ]);
 
-        /** @var \Isobar\Flow\Services\Product\OrderAPIService $dupeMockRevealed */
+        /** @var OrderAPIService $dupeMockRevealed */
         $dupeMockRevealed = $dupeMock->reveal();
 
         $this->assertEquals(

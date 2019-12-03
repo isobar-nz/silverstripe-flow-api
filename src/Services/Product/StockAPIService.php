@@ -6,7 +6,6 @@ namespace Isobar\Flow\Services\Product;
 
 use Isobar\Flow\Services\Connector\Connector;
 use Isobar\Flow\Services\EnvironmentSettings;
-use Isobar\Flow\Services\Product\ProductServiceInterface;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injectable;
 
@@ -15,7 +14,7 @@ class StockAPIService implements ProductServiceInterface
     use Injectable;
 
     /**
-     * @var \Isobar\Flow\Services\Connector\Connector
+     * @var Connector
      */
     protected $connector;
 
@@ -26,7 +25,6 @@ class StockAPIService implements ProductServiceInterface
 
     /**
      * @return array List of products
-     * @throws \SilverStripe\Control\HTTPResponse_Exception
      */
     public function products()
     {
@@ -35,7 +33,6 @@ class StockAPIService implements ProductServiceInterface
 
     /**
      * @return array
-     * @throws \SilverStripe\Control\HTTPResponse_Exception
      */
     protected function getStock()
     {
@@ -58,7 +55,7 @@ class StockAPIService implements ProductServiceInterface
     }
 
     /**
-     * @return \Isobar\Flow\Services\Connector\Connector
+     * @return Connector
      */
     public function getConnector()
     {
@@ -66,7 +63,7 @@ class StockAPIService implements ProductServiceInterface
     }
 
     /**
-     * @param \Isobar\Flow\Services\Connector\Connector $connector
+     * @param Connector $connector
      * @return $this
      */
     public function setConnector(Connector $connector)

@@ -36,7 +36,7 @@ class PricingImport
     /**
      * Imports data from Flow XML feed
      *
-     * @throws \SilverStripe\ORM\ValidationException
+     * @throws ValidationException
      */
     public function runImport()
     {
@@ -56,28 +56,17 @@ class PricingImport
     }
 
     /**
-     * @param \Isobar\Flow\Model\CompletedTask $task
+     * @param CompletedTask $task
      * @throws ValidationException
      */
     private function importData(CompletedTask $task)
     {
-        try {
-            $api = PricingAPIService::singleton();
+        $api = PricingAPIService::singleton();
 
-            $connector = singleton(FlowAPIConnector::class);
-            $api->setConnector($connector);
+        $connector = singleton(FlowAPIConnector::class);
+        $api->setConnector($connector);
 
-            $result = $api->products();
-        } catch (HTTPResponse_Exception $e) {
-            $task->setField('Status', FlowStatus::CANCELLED);
-
-            $task->addError($e->getMessage());
-
-            $task->write();
-
-            return;
-        }
-
+        $result = $api->products();
 
         // Empty result triggers failure
         if (empty($result)) {
@@ -105,8 +94,8 @@ class PricingImport
 
     /**
      * @param array $pricing
-     * @param \Isobar\Flow\Model\CompletedTask $task
-     * @throws \SilverStripe\ORM\ValidationException
+     * @param CompletedTask $task
+     * @throws ValidationException
      */
     public function importPricingData(array $pricing, CompletedTask $task)
     {
@@ -117,7 +106,7 @@ class PricingImport
         }
 
         // Find or make forecast group
-        /** @var \Isobar\Flow\Model\ScheduledWineProduct $scheduledProduct */
+        /** @var ScheduledWineProduct $scheduledProduct */
         $scheduledProduct = ScheduledWineProduct::get()->filter([
             'ForecastGroup' => $pricing['forecastGroup']
         ])->first();

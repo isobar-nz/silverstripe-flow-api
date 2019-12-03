@@ -3,8 +3,6 @@
 
 namespace Isobar\Flow\Services\Connector;
 
-use SilverStripe\Control\HTTPResponse_Exception;
-
 /**
  * Interface ConnectorInterface
  * @package App\Flow\Services\Connector

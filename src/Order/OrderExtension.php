@@ -3,22 +3,21 @@ declare(strict_types=1);
 
 namespace Isobar\Flow\Order;
 
+use Exception;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
-use SilverStripe\Forms\HeaderField;
-use SilverStripe\Forms\LiteralField;
 use SilverStripe\i18n\i18n;
 use SilverStripe\Omnipay\Model\Payment;
 use SilverStripe\ORM\DataExtension;
 use SilverStripe\ORM\FieldType\DBBoolean;
-use SilverStripe\ORM\FieldType\DBField;
-use SilverStripe\ORM\FieldType\DBHTMLText;
+use SilverStripe\ORM\ValidationException;
 use SilverStripe\Security\Member;
 use SimpleXMLElement;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 use SwipeStripe\Coupons\Order\OrderCouponAddOn;
+use SwipeStripe\Order\Order;
 use SwipeStripe\Order\OrderItem\OrderItem;
 use SwipeStripe\Shipping\Order\ShippingAddOn;
 use SwipeStripe\Shipping\ShippingRegion;
@@ -27,7 +26,7 @@ use SwipeStripe\Shipping\ShippingRegion;
  * Class OrderExtension
  *
  * @package App\Flow\Order
- * @property \SwipeStripe\Order\Order|\App\Flow\Order\OrderExtension $owner
+ * @property Order|OrderExtension $owner
  * @property boolean $SentToFlow
  * @property boolean $Scheduled
  */
@@ -61,6 +60,9 @@ class OrderExtension extends DataExtension
         $this->scheduleOrder();
     }
 
+    /**
+     *
+     */
     public function scheduleOrder()
     {
         if (!$this->owner->Scheduled) {
@@ -74,10 +76,18 @@ class OrderExtension extends DataExtension
                 'XmlData' => $xml
             ]);
 
-            $scheduledOrder->write();
+            try {
+                $scheduledOrder->write();
+            } catch (ValidationException $e) {
+                error_log($e->getMessage());
+            }
 
             $this->owner->setField('Scheduled', 1);
-            $this->owner->write();
+            try {
+                $this->owner->write();
+            } catch (ValidationException $e) {
+                error_log($e->getMessage());
+            }
         }
     }
 
@@ -85,11 +95,13 @@ class OrderExtension extends DataExtension
     {
         // Get specific region data
         /** @var ShippingRegion $billingAddressRegionObject */
+        /** @noinspection PhpUndefinedFieldInspection */
         $billingAddressRegionObject = ShippingRegion::get()->byID($this->owner->BillingAddressRegion);
 
         $billingAddressRegion = $billingAddressRegionObject ? $billingAddressRegionObject->Title : '';
 
         /** @var ShippingRegion $shippingAddressRegionObject */
+        /** @noinspection PhpUndefinedFieldInspection */
         $shippingAddressRegionObject = ShippingRegion::get()->byID($this->owner->ShippingAddressRegion);
 
         $shippingAddressRegion = $shippingAddressRegionObject ? $shippingAddressRegionObject->Title : '';
@@ -98,16 +110,37 @@ class OrderExtension extends DataExtension
         $countryList = i18n::getData()->getCountries();
 
         // If the full title is available use that
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
         $billingCountry = array_key_exists($this->owner->BillingAddressCountry, $countryList)
             ? $countryList[$this->owner->BillingAddressCountry]
             : $this->owner->BillingAddressCountry;
 
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
         $shippingCountry = array_key_exists($this->owner->ShippingAddressCountry, $countryList)
             ? $countryList[$this->owner->ShippingAddressCountry]
             : $this->owner->ShippingAddressCountry;
 
         // Initial data: all fields are required
         // Fields must be in the correct order
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
+        /** @noinspection PhpUndefinedFieldInspection */
         $data = [
             'OrderNo'     => $this->owner->ID,
             'OrderDate'   => $this->owner->dbObject('ConfirmationTime')->Format('Y-MM-dd'),
@@ -167,6 +200,7 @@ class OrderExtension extends DataExtension
         ];
 
         // Coupon
+        /** @noinspection PhpUndefinedMethodInspection */
         $couponAddOns = $this->owner->OrderCouponAddOns();
 
         /** @var OrderCouponAddOn $couponAddOn */
@@ -179,6 +213,7 @@ class OrderExtension extends DataExtension
 
         // Order add-ons - shipping
         /** @var ShippingAddOn $shippingAddOn */
+        /** @noinspection PhpUndefinedMethodInspection */
         $shippingAddOn = $this->owner->getShippingAddOn();
 
         if ($shippingAddOn && $shippingAddOn->exists()) {
@@ -188,8 +223,10 @@ class OrderExtension extends DataExtension
         }
 
         // Member functions
+        /** @noinspection PhpUndefinedFieldInspection */
         if ($this->owner->MemberID) {
             /** @var Member $member */
+            /** @noinspection PhpUndefinedMethodInspection */
             $member = $this->owner->Member();
 
             $data['CustomerNo']        = $member->ID;
@@ -241,6 +278,7 @@ class OrderExtension extends DataExtension
         });
 
         // Look through products
+        /** @noinspection PhpUndefinedMethodInspection */
         $orderItems = $this->owner->OrderItems();
 
         /** @var OrderItem $orderItem */
@@ -257,14 +295,23 @@ class OrderExtension extends DataExtension
 
                 $orderLine->addChild('ProductCode', $variation->SKU);
                 $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
-                $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                try {
+                    $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                } catch (Exception $e) {
+                    error_log($e->getMessage());
+                }
             } else {
                 // Order lines
                 $orderLine = $xmlOrder->addChild('orderLines');
 
-                $orderLine->addChild('ProductCode', $orderItem->Purchasable()->ForecastGroup ?: $orderItem->Purchasable()->SKU);
-                $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
-                $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                try {
+                    $orderLine->addChild('ProductCode', $orderItem->Purchasable()->ForecastGroup ?: $orderItem->Purchasable()->SKU);
+                    $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
+                    $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                } catch (Exception $e) {
+                    error_log($e->getMessage());
+                }
+
             }
         }
 

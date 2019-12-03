@@ -137,9 +137,9 @@ class CompletedTask extends DataObject
     {
         $html = DBHTMLText::create();
 
-        if (strpos($this->Status, \Isobar\Flow\Services\FlowStatus::COMPLETED) !== false) {
+        if (strpos($this->Status, FlowStatus::COMPLETED) !== false) {
             $html->setValue('<span style="color: #449d44;">' . $this->Status . '</span>');
-        } elseif (strpos($this->Status, \Isobar\Flow\Services\FlowStatus::FAILED) !== false) {
+        } elseif (strpos($this->Status, FlowStatus::FAILED) !== false) {
             $html->setValue('<span style="color: #ff0000;">' . $this->Status . '</span>');
         } elseif (strpos($this->Status, FlowStatus::CANCELLED) !== false) {
             $html->setValue('<span style="color: #894f48;">' . $this->Status . '</span>');
@@ -200,6 +200,6 @@ class CompletedTask extends DataObject
      */
     public function hasFailed()
     {
-        return $this->Status == FlowStatus::FAILED || $this->Status == \Isobar\Flow\Services\FlowStatus::CANCELLED;
+        return $this->Status == FlowStatus::FAILED || $this->Status == FlowStatus::CANCELLED;
     }
 }
