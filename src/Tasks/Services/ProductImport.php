@@ -143,13 +143,23 @@ class ProductImport
             $scheduledVariation = ScheduledWineVariation::create([
                 'Title'         => $product['vintage'],
                 'SKU'           => $product['productCode'],
-                'ForecastGroup' => $product['forecastGroup']
+                'ForecastGroup' => $product['forecastGroup'],
+                'VariationType' => 'Vintage'
+
             ]);
-
-            $scheduledVariation->write();
-
-            $scheduledProduct->ScheduledVariations()->add($scheduledVariation);
+        } else {
+            // Use the packing size instead
+            $scheduledVariation = ScheduledWineVariation::create([
+                'Title'         => $product['packingSize'],
+                'SKU'           => $product['productCode'],
+                'ForecastGroup' => $product['forecastGroup'],
+                'VariationType' => 'Pack'
+            ]);
         }
+
+        $scheduledVariation->write();
+
+        $scheduledProduct->ScheduledVariations()->add($scheduledVariation);
 
         $scheduledProduct->write();
     }

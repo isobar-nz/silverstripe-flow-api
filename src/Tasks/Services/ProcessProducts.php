@@ -258,18 +258,29 @@ class ProcessProducts
      */
     private function createWineVariation(ScheduledWineVariation $scheduledWineVariation, int $wineProductID)
     {
-
-        // Get the "Vintage" attribute
+        // Get the corresponding variation type
         $vintageAttribute = ProductAttribute::get()->filter([
-            'Title'     => 'Vintage',
+            'Title'     => $scheduledWineVariation->VariationType,
             'ProductID' => $wineProductID
         ])->first();
+
+        if ($vintageAttribute && $vintageAttribute->exists()) {
+            $vintageAttributeID = $vintageAttribute->ID;
+        } else {
+            $vintageAttribute = ProductAttribute::create([
+                'Title'     => $scheduledWineVariation->VariationType,
+                'ProductID' => $wineProductID
+            ]);
+
+            $vintageAttributeID = $vintageAttribute->write();
+        }
 
         // Do we have a Product Attribute Option with the right title?
         $productAttributeOption = ProductAttributeOption::get()->filter([
             'Title'              => $scheduledWineVariation->Title,
-            'ProductAttributeID' => $vintageAttribute->ID
+            'ProductAttributeID' => $vintageAttributeID
         ])->first();
+
 
         // Format the price modifier amount
         $modifier = $scheduledWineVariation->PriceModifierAmount;

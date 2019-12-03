@@ -42,7 +42,9 @@ class ScheduledWineVariation extends DataObject
         'ForecastGroup'       => DBVarchar::class,
         'PriceModifierAmount' => DBDecimal::class,
         'Status'              => FlowStatus::ENUM,
-        'Title'               => DBVarchar::class
+        'Title'               => DBVarchar::class,
+        'VariationType'       => DBVarchar::class
+
     ];
 
     private static $summary_fields = [
@@ -51,7 +53,8 @@ class ScheduledWineVariation extends DataObject
         'ForecastGroup'       => 'Forecast Group',
         'PriceModifierAmount' => 'Price Modifier',
         'StatusLabel'         => 'Status',
-        'Created'             => 'Created'
+        'Created'             => 'Created',
+        'VariationType'       => 'Type'
     ];
 
     private static $has_one = [
