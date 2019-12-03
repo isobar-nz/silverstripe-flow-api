@@ -9,7 +9,7 @@ use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\CompletedTask;
 use Isobar\Flow\Model\ScheduledWineProduct;
 use Isobar\Flow\Model\ScheduledWineVariation;
-use Isobar\Flow\Order\OrderExtension;
+use Isobar\Flow\Extensions\OrderExtension;
 use Isobar\Flow\Services\Connector\BasicAuthConnector;
 use Isobar\Flow\Tasks\Services\ProcessProducts;
 use Isobar\Flow\Services\Product\OrderAPIService;

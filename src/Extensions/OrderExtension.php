@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Isobar\Flow\Order;
+namespace Isobar\Flow\Extensions;
 
 use Exception;
 use Isobar\Flow\Services\FlowStatus;

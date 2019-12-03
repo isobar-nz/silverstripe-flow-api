@@ -2,7 +2,7 @@
 
 namespace Isobar\Flow\Tasks;
 
-use Isobar\Flow\Order\OrderExtension;
+use Isobar\Flow\Extensions\OrderExtension;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\NullHTTPRequest;
 use SilverStripe\CronTask\Interfaces\CronTask;
@@ -62,7 +62,7 @@ class CheckOrdersTask extends BuildTask implements CronTask
             ]);
 
         // run through and schedule
-        /** @var Order|OrderExtension $order */
+        /** @var Order|\Isobar\Flow\Extensions\OrderExtension $order */
         foreach ($orders as $order) {
             if ($order->UnpaidTotal()->getDecimalValue() <= 0) {
                 echo 'Order #' . $order->ID . ' to be scheduled' . "\n";
