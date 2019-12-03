@@ -35,7 +35,7 @@ class FlowProductExtension extends DataExtension
     public function updateSearchableFields(&$fields)
     {
         $fields['ForecastGroup'] = [
-            'Title' => 'Forecast Group'
+            'title' => 'Forecast Group'
         ];
     }
 
