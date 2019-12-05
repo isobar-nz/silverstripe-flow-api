@@ -2,6 +2,7 @@
 
 namespace Isobar\Flow\Forms\GridField;
 
+use Isobar\Flow\Extensions\FlowGridFieldExtension;
 use Isobar\Flow\Model\CompletedTask;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Forms\Form;
