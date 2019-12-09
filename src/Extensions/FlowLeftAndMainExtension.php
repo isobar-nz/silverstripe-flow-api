@@ -8,15 +8,10 @@ use Exception;
 use Isobar\Flow\Traits\HandlesFlowSyncTrait;
 use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\Admin\ModelAdmin;
-use SilverStripe\Control\Controller;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Core\Extension;
-use SilverStripe\Forms\CheckboxField;
-use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Form;
-use SilverStripe\Forms\FormAction;
-use SilverStripe\Forms\HiddenField;
 
 /**
  * Class FlowLeftAndMainExtension
@@ -26,7 +21,7 @@ use SilverStripe\Forms\HiddenField;
  */
 class FlowLeftAndMainExtension extends Extension
 {
-    use HandlesFlowSyncTrait;
+//    use HandlesFlowSyncTrait;
 
     /**
      * @param $form
@@ -48,39 +43,6 @@ class FlowLeftAndMainExtension extends Extension
         $response->setStatusCode($code);
 
         return $response;
-    }
-
-
-    /**
-     * Generate a CSV import form for a single {@link DataObject} subclass.
-     *
-     * @return Form|false
-     */
-    public function FlowForm()
-    {
-        $fields = new FieldList(
-            new HiddenField('ClassName', false, $this->owner->getModelClass()),
-            new CheckboxField('_SyncAll', 'Sync all')
-        );
-
-        $actions = new FieldList(
-            FormAction::create('sync', _t('Isobar\\Flow.SYNC_FROM_FLOW', 'Sync from Flow'))
-                ->addExtraClass('btn btn-primary font-icon-sync')
-        );
-
-        $form = new Form(
-            $this->owner,
-            "FlowForm",
-            $fields,
-            $actions
-        );
-        $form->setFormAction(
-            Controller::join_links($this->owner->Link($this->sanitiseClassName($this->owner->getModelClass())), 'FlowForm')
-        );
-
-        $this->owner->extend('updateFlowForm', $form);
-
-        return $form;
     }
 
     /**

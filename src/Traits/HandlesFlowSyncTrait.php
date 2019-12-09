@@ -4,17 +4,21 @@
 namespace Isobar\Flow\Traits;
 
 
+use Isobar\Flow\Exception\FlowException;
+use Isobar\Flow\Tasks\ProcessProductsTask;
 use Isobar\Flow\Tasks\ProductImportTask;
+use Isobar\Flow\Tasks\StockImportTask;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
+use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Versioned\Versioned;
 
 trait HandlesFlowSyncTrait
 {
-    public abstract function actionComplete($form, $message, $code);
+    public abstract function actionComplete($form, $message, $code, $gridField = null);
 
     /**
      * Decorate actions with fluent-specific details
@@ -38,9 +42,10 @@ trait HandlesFlowSyncTrait
     /**
      * @param array $data
      * @param Form $form
+     * @param null|GridField $gridField
      * @return HTTPResponse
      */
-    public function doFlowSync($data, $form)
+    public function doFlowSync($data, $form, $gridField = null)
     {
         ob_start();
         ini_set('memory_limit', -1);
@@ -51,38 +56,38 @@ trait HandlesFlowSyncTrait
 
         // Product
         $productTask = new ProductImportTask();
-//
-//        try {
-//            $productTask->process();
-//        } catch (Exception $e) {
-//            $message = $e->getMessage();
-//            $code = $e->getCode();
-//        }
-//
-//        // Process
-//        $productTask = new ProcessProductsTask();
-//
-//        try {
-//            $productTask->process();
-//        } catch (Exception $e) {
-//            $message = $e->getMessage();
-//            $code = $e->getCode();
-//        }
-//
-//        // Stock
-//        $stockTask = new StockImportTask();
-//
-//        try {
-//            $stockTask->process();
-//        } catch (Exception $e) {
-//            $message = $e->getMessage();
-//            $code = $e->getCode();
-//        }
+
+        try {
+            $productTask->process();
+        } catch (FlowException $e) {
+            $message = $e->getMessage();
+            $code = $e->getCode();
+        }
+
+        // Process
+        $productTask = new ProcessProductsTask();
+
+        try {
+            $productTask->process();
+        } catch (FlowException $e) {
+            $message = $e->getMessage();
+            $code = $e->getCode();
+        }
+
+        // Stock
+        $stockTask = new StockImportTask();
+
+        try {
+            $stockTask->process();
+        } catch (FlowException $e) {
+            $message = $e->getMessage();
+            $code = $e->getCode();
+        }
 
         // Suppress echo
         ob_end_clean();
 
-        return $this->actionComplete($form, $message, $code);
+        return $this->actionComplete($form, $message, $code, $gridField);
     }
 
 

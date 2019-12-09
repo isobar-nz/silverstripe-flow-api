@@ -3,13 +3,13 @@
 
 namespace Isobar\Flow\Tasks\Services;
 
+use Isobar\Flow\Exception\FlowException;
+use Isobar\Flow\Exception\ValidationException;
 use Isobar\Flow\Services\FlowAPIConnector;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
 use Isobar\Flow\Services\Product\OrderAPIService;
 use App\Pages\MediaPages\WineClubEvent;
-use Exception;
-use SilverStripe\ORM\ValidationException;
 use SwipeStripe\Order\Status\OrderStatus;
 use SwipeStripe\Order\Status\OrderStatusUpdate;
 
@@ -28,20 +28,24 @@ class ProcessOrders
 
     /**
      * Processes all orders from scheduled list
-     * @throws ValidationException
+     * @throws FlowException
      */
     public function runProcessData()
     {
         echo "Beginning processing orders\n\n";
 
         // Send orders to Flow
-        $this->processOrders();
+        try {
+            $this->processOrders();
+        } catch (\Exception $e) {
+            throw new FlowException($e->getMessage(), $e->getMessage());
+        }
 
         echo "\nCompleted processing orders\n\n";
     }
 
     /**
-     * @throws ValidationException
+     * @throws \SilverStripe\ORM\ValidationException
      */
     private function processOrders()
     {
@@ -101,7 +105,7 @@ class ProcessOrders
                         $api->setConnector($connector);
 
                         $result = $api->order($xmlData);
-                    } catch (Exception $e) {
+                    } catch (FlowException $e) {
                         $scheduledOrder->setField('Status', FlowStatus::FAILED);
 
                         $this->OrdersFailed++;

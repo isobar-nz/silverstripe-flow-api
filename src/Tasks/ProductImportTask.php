@@ -3,6 +3,7 @@
 namespace Isobar\Flow\Tasks;
 
 use Exception;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\PricingImport;
 use Isobar\Flow\Tasks\Services\ProductImport;
 use SilverStripe\Control\HTTPRequest;
@@ -46,14 +47,21 @@ class ProductImportTask extends BuildTask implements CronTask
 
     /**
      * Import handler for cron task
+     * @throws FlowException
      */
     public function process()
     {
-        $this->run(new NullHTTPRequest());
+        try {
+            $this->run(new NullHTTPRequest());
+        } catch (ValidationException $e) {
+            throw new FlowException($e->getMessage(), $e->getCode());
+        }
     }
 
     /**
      * @param HTTPRequest $request
+     * @throws FlowException
+     * @throws ValidationException
      */
     public function run($request)
     {
@@ -63,23 +71,11 @@ class ProductImportTask extends BuildTask implements CronTask
         // Product import
         $flowService = new ProductImport();
 
-        try {
-            $task = $flowService->runImport();
-        } catch (Exception $e) {
-            echo $e->getMessage();
-
-            return;
-        }
+        $task = $flowService->runImport();
 
         // Pricing import
         $flowPricingService = new PricingImport($task);
 
-        try {
-            $flowPricingService->runImport();
-        } catch (ValidationException $e) {
-            echo $e->getMessage();
-
-            return;
-        }
+        $flowPricingService->runImport();
     }
 }

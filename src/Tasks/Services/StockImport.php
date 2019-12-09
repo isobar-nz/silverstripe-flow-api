@@ -5,6 +5,7 @@ namespace Isobar\Flow\Tasks\Services;
 
 use Exception;
 use Isobar\Flow\Config\FlowConfig;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowAPIConnector;
 use Isobar\Flow\Services\Product\StockAPIService;
 use SilverStripe\Control\Director;
@@ -20,7 +21,7 @@ class StockImport
 
     /**
      * Imports data from Flow XML feed
-     * @throws Exception
+     * @throws FlowException
      */
     public function runImport()
     {
@@ -29,7 +30,11 @@ class StockImport
         }
 
         // import PIMS data to temp table
-        $this->importData();
+        try {
+            $this->importData();
+        } catch (Exception $e) {
+            throw new FlowException($e->getMessage(), $e->getCode());
+        }
 
         if (Director::is_cli()) {
             echo "\nCompleted Stock Import\n\n";
@@ -76,7 +81,7 @@ class StockImport
     public function importStockData(array $stockOnHand)
     {
         if (empty($stockOnHand)) {
-            throw new Exception('Empty data');
+            throw new FlowException('Empty data');
         }
 
         // Find or make forecast group

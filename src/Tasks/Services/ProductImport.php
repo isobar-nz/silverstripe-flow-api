@@ -3,6 +3,8 @@
 
 namespace Isobar\Flow\Tasks\Services;
 
+use Exception;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowAPIConnector;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\CompletedTask;
@@ -25,9 +27,9 @@ class ProductImport
     /**
      * Imports data from Flow XML feed
      *
-     * @return \Isobar\Flow\Model\CompletedTask
-     * @throws ValidationException
+     * @return CompletedTask
      *
+     * @throws FlowException
      */
     public function runImport()
     {
@@ -42,10 +44,18 @@ class ProductImport
         $task->Title = 'Import Product Task ' . ($count + 1);
         $task->Status = FlowStatus::PENDING;
 
-        $task->write();
+        try {
+            $task->write();
+        } catch (ValidationException $e) {
+            throw new FlowException($e->getMessage(), $e->getCode());
+        }
 
         // import PIMS data to temp table
-        $this->importData($task);
+        try {
+            $this->importData($task);
+        } catch (Exception $e) {
+            throw new FlowException($e->getMessage(), $e->getCode());
+        }
 
         if (Director::is_cli()) {
             echo "\nCompleted Product Import\n\n";
@@ -55,14 +65,12 @@ class ProductImport
     }
 
     /**
-     * @param \Isobar\Flow\Model\CompletedTask $task
+     * @param CompletedTask $task
      * @throws ValidationException
      */
     private function importData(CompletedTask $task)
     {
         // Get product data
-//        $result = ApiController::singleton()->getProducts();
-
         $api = ProductAPIService::singleton();
 
         $connector = singleton(FlowAPIConnector::class);
@@ -109,7 +117,7 @@ class ProductImport
 
     /**
      * @param array $product
-     * @param \Isobar\Flow\Model\CompletedTask $task
+     * @param CompletedTask $task
      * @throws ValidationException
      */
     public function importProductData(array $product, CompletedTask $task)

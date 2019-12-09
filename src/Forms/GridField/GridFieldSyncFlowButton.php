@@ -2,20 +2,27 @@
 
 namespace Isobar\Flow\Forms\GridField;
 
+use Exception;
+use Isobar\Flow\Traits\HandlesFlowSyncTrait;
+use SilverStripe\Control\Controller;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\HTTPResponse_Exception;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\GridField\GridField;
+use SilverStripe\Forms\GridField\GridField_ActionProvider;
 use SilverStripe\Forms\GridField\GridField_FormAction;
 use SilverStripe\Forms\GridField\GridField_HTMLProvider;
-use SilverStripe\View\ArrayData;
-use SilverStripe\View\SSViewer;
+use SilverStripe\ORM\ValidationResult;
+use Symbiote\GridFieldExtensions\GridFieldExtensions;
 
 /**
  * Adds an "Export list" button to the bottom of a {@link GridField}.
  */
-class GridFieldSyncFlowButton implements GridField_HTMLProvider
+class GridFieldSyncFlowButton implements GridField_HTMLProvider, GridField_ActionProvider
 {
     use Injectable;
+    use HandlesFlowSyncTrait;
 
     /**
      * Fragment to write the button to
@@ -28,24 +35,6 @@ class GridFieldSyncFlowButton implements GridField_HTMLProvider
     protected $type;
 
     /**
-     * @var Form $flowForm
-     */
-    protected $flowForm;
-
-    /**
-     * @var string
-     */
-    protected $modalTitle = null;
-
-    /**
-     * URL for iframe
-     *
-     * @var string
-     */
-    protected $flowIframe = null;
-
-
-    /**
      * @param string $targetFragment The HTML fragment to write the button into
      * @param string $type Determines what to sync
      */
@@ -53,6 +42,43 @@ class GridFieldSyncFlowButton implements GridField_HTMLProvider
     {
         $this->targetFragment = $targetFragment;
         $this->type = $type;
+    }
+
+    public function getURLHandlers($grid)
+    {
+        return [
+            'POST sync' => 'handleSync',
+        ];
+    }
+
+    private static $allowed_actions = [
+        'handleSync'
+    ];
+
+
+    /**
+     * Handles requests to reorder a set of IDs in a specific order.
+     *
+     * @param GridField $grid
+     * @param HTTPRequest $request
+     * @return string
+     * @throws HTTPResponse_Exception
+     */
+    public function handleSync($grid, $request)
+    {
+        $list = $grid->getList();
+        $modelClass = $grid->getModelClass();
+
+        // Save any un-committed changes to the gridfield
+        if (($form = $grid->getForm()) && ($record = $form->getRecord())) {
+
+        }
+
+        // Get records from the `GridFieldEditableColumns` column
+        $data = $request->postVar($grid->getName());
+
+        Controller::curr()->getResponse()->addHeader('X-Status', rawurlencode('Flow synced.'));
+        return $grid->FieldHolder();
     }
 
     /**
@@ -64,21 +90,7 @@ class GridFieldSyncFlowButton implements GridField_HTMLProvider
      */
     public function getHTMLFragments($gridField)
     {
-        $modalID = $gridField->ID() . '_FlowModal';
-
-        // Check for form message prior to rendering form (which clears session messages)
-        $form = $this->getFlowForm();
-        $hasMessage = $form && $form->getMessage();
-
-        // Render modal
-        $template = SSViewer::get_templates_by_class(static::class, '_Modal');
-        $viewer = new ArrayData([
-            'FlowModalTitle' => $this->getModalTitle(),
-            'FlowModalID'    => $modalID,
-            'FlowIframe'     => $this->getFlowIframe(),
-            'FlowForm'       => $this->getFlowForm(),
-        ]);
-        $modal = $viewer->renderWith($template)->forTemplate();
+        GridFieldExtensions::include_requirements();
 
         // Build action button
         $button = new GridField_FormAction(
@@ -88,86 +100,64 @@ class GridFieldSyncFlowButton implements GridField_HTMLProvider
             'sync',
             null
         );
+
         $button
             ->addExtraClass('btn btn-secondary font-icon-sync btn--icon-large action_sync')
-            ->setForm($gridField->getForm())
-            ->setAttribute('data-toggle', 'modal')
-            ->setAttribute('aria-controls', $modalID)
-            ->setAttribute('data-target', "#{$modalID}")
-            ->setAttribute('data-modal', $modal);
-
-        // If form has a message, trigger it to automatically open
-        if ($hasMessage) {
-            $button->setAttribute('data-state', 'open');
-        }
+            ->setForm($gridField->getForm());
 
         return [
-            $this->targetFragment => $button->Field()
+            $this->targetFragment => $button->Field(),
         ];
     }
 
     /**
-     * export is an action button
+     * Return a list of the actions handled by this action provider.
      *
-     * @param GridField $gridField
-     * @return array
+     * Used to identify the action later on through the $actionName parameter
+     * in {@link handleAction}.
+     *
+     * There is no namespacing on these actions, so you need to ensure that
+     * they don't conflict with other components.
+     *
+     * @param GridField
+     * @return array with action identifier strings.
      */
     public function getActions($gridField)
     {
-        return [];
+        return ['sync'];
     }
 
     /**
-     * @return string
+     * Handle an action on the given {@link GridField}.
+     *
+     * Calls ALL components for every action handled, so the component needs
+     * to ensure it only accepts actions it is actually supposed to handle.
+     *
+     * @param GridField $gridField
+     * @param string $actionName Action identifier, see {@link getActions()}.
+     * @param array $arguments Arguments relevant for this
+     * @param array $data All form data
      */
-    public function getModalTitle()
+    public function handleAction(GridField $gridField, $actionName, $arguments, $data)
     {
-        return $this->modalTitle;
+        if ($actionName == 'sync') {
+            $this->doFlowSync($data, $gridField->getForm(), $gridField);
+        }
     }
 
     /**
-     * @param string $modalTitle
-     * @return $this
+     * @param Form $form
+     * @param string $message
+     * @param int $code
+     * @param GridField $gridField
+     * @return mixed
      */
-    public function setModalTitle($modalTitle)
+    public function actionComplete($form, $message, $code, $gridField)
     {
-        $this->modalTitle = $modalTitle;
-        return $this;
-    }
+        Controller::curr()->getResponse()->addHeader('X-Status', rawurlencode($message));
 
-    /**
-     * @return Form
-     */
-    public function getFlowForm()
-    {
-        return $this->flowForm;
-    }
+        Controller::curr()->getResponse()->setStatusCode($code);
 
-    /**
-     * @param Form $flowForm
-     * @return $this
-     */
-    public function setFlowForm($flowForm)
-    {
-        $this->flowForm = $flowForm;
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getFlowIframe()
-    {
-        return $this->flowIframe;
-    }
-
-    /**
-     * @param string $flowIframe
-     * @return $this
-     */
-    public function setFlowIframe($flowIframe)
-    {
-        $this->flowIframe = $flowIframe;
-        return $this;
+        return $gridField->FieldHolder();
     }
 }

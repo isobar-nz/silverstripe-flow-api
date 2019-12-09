@@ -16,7 +16,6 @@ use SilverStripe\Admin\ModelAdmin;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridFieldDetailForm;
-use SilverStripe\Forms\GridField\GridFieldImportButton;
 
 /**
  * Class ShippingAdmin
@@ -35,7 +34,7 @@ class FlowAdmin extends ModelAdmin
     /**
      * @var string
      */
-    private static $url_segment = 'flow/imports';
+    private static $url_segment = 'flow';
 
     /**
      * @var array
@@ -45,12 +44,6 @@ class FlowAdmin extends ModelAdmin
         ScheduledOrder::class,
         ScheduledWineProduct::class,
         ScheduledWineVariation::class
-    ];
-
-    private static $allowed_actions = [
-        'ImportForm',
-        'FlowForm',
-        'SearchForm'
     ];
 
     private static $extensions = [
@@ -79,9 +72,7 @@ class FlowAdmin extends ModelAdmin
             $detailForm->setItemRequestClass(CompletedTask_ItemRequest::class);
 
             $config->addComponent(
-                GridFieldSyncFlowButton::create('buttons-before-left')
-                    ->setFlowForm($this->FlowForm())
-                    ->setModalTitle(_t('SilverStripe\\Admin\\ModelAdmin.SYNC', 'Sync from Flow'))
+                new GridFieldSyncFlowButton('buttons-before-left')
             );
         }
 

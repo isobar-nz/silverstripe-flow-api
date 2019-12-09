@@ -3,11 +3,13 @@
 namespace Isobar\Flow\Tasks;
 
 use Exception;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\StockImport;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\NullHTTPRequest;
 use SilverStripe\CronTask\Interfaces\CronTask;
 use SilverStripe\Dev\BuildTask;
+use SilverStripe\ORM\ValidationException;
 
 /**
  * Class StockImportTask
@@ -44,6 +46,7 @@ class StockImportTask extends BuildTask implements CronTask
 
     /**
      * Import handler for cron task
+     * @throws FlowException
      */
     public function process()
     {
@@ -52,6 +55,7 @@ class StockImportTask extends BuildTask implements CronTask
 
     /**
      * @param HTTPRequest $request
+     * @throws FlowException
      */
     public function run($request)
     {
@@ -61,12 +65,6 @@ class StockImportTask extends BuildTask implements CronTask
         // Product import
         $flowService = new StockImport();
 
-        try {
-            $flowService->runImport();
-        } catch (Exception $e) {
-            echo $e->getMessage();
-
-            return;
-        }
+        $flowService->runImport();
     }
 }
