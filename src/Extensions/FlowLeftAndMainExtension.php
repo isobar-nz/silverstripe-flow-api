@@ -5,6 +5,7 @@ namespace Isobar\Flow\Extensions;
 
 
 use Exception;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Traits\HandlesFlowSyncTrait;
 use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\Admin\ModelAdmin;
@@ -50,12 +51,12 @@ class FlowLeftAndMainExtension extends Extension
      * {@link self::model_importers}.
      * Redirects back with a success/failure message.
      *
-     * @todo Figure out ajax submission of files via jQuery.form plugin
-     *
      * @param array $data
      * @param Form $form
      * @param HTTPRequest $request
      * @return bool|HTTPResponse
+     * @throws FlowException
+     *
      */
     public function sync($data, $form, $request)
     {
@@ -64,6 +65,7 @@ class FlowLeftAndMainExtension extends Extension
             $message = $this->doFlowSync($data, $form);
         } catch (Exception $e) {
             $form->sessionMessage($e->getMessage(), 'bad');
+            throw new FlowException($e->getMessage(), $e->getCode());
         }
 
         $form->sessionMessage($message, 'good');

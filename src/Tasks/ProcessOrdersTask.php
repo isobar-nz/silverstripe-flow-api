@@ -3,6 +3,7 @@
 namespace Isobar\Flow\Tasks;
 
 use Exception;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\ProcessOrders;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\NullHTTPRequest;
@@ -48,6 +49,7 @@ class ProcessOrdersTask extends BuildTask implements CronTask
 
     /**
      * @param HTTPRequest $request
+     * @throws FlowException
      */
     public function run($request)
     {
@@ -58,7 +60,7 @@ class ProcessOrdersTask extends BuildTask implements CronTask
         try {
             $flowService->runProcessData();
         } catch (Exception $e) {
-            echo $e->getMessage();
+            throw new FlowException($e->getMessage(), $e->getCode());
         }
     }
 }

@@ -23,7 +23,7 @@ trait HandlesFlowSyncTrait
     /**
      * Decorate actions with fluent-specific details
      *
-     * @param FieldList            $actions
+     * @param FieldList $actions
      * @param DataObject|Versioned $record
      */
     protected function updateFlowActions(FieldList $actions, DataObject $record)
@@ -44,6 +44,7 @@ trait HandlesFlowSyncTrait
      * @param Form $form
      * @param null|GridField $gridField
      * @return HTTPResponse
+     * @throws FlowException
      */
     public function doFlowSync($data, $form, $gridField = null)
     {
@@ -56,33 +57,15 @@ trait HandlesFlowSyncTrait
 
         // Product
         $productTask = new ProductImportTask();
-
-        try {
-            $productTask->process();
-        } catch (FlowException $e) {
-            $message = $e->getMessage();
-            $code = $e->getCode();
-        }
+        $productTask->process();
 
         // Process
         $productTask = new ProcessProductsTask();
-
-        try {
-            $productTask->process();
-        } catch (FlowException $e) {
-            $message = $e->getMessage();
-            $code = $e->getCode();
-        }
+        $productTask->process();
 
         // Stock
         $stockTask = new StockImportTask();
-
-        try {
-            $stockTask->process();
-        } catch (FlowException $e) {
-            $message = $e->getMessage();
-            $code = $e->getCode();
-        }
+        $stockTask->process();
 
         // Suppress echo
         ob_end_clean();

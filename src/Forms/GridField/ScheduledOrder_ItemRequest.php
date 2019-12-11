@@ -3,6 +3,7 @@
 namespace Isobar\Flow\Forms\GridField;
 
 use Exception;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
 use Isobar\Flow\Services\FlowAPIConnector;
@@ -53,6 +54,7 @@ class ScheduledOrder_ItemRequest extends GridFieldDetailForm_ItemRequest
      * @param Form $form
      * @return HTTPResponse|DBHTMLText
      * @throws ValidationException
+     * @throws FlowException
      */
     public function doSendToFlow($data, $form)
     {
@@ -67,11 +69,8 @@ class ScheduledOrder_ItemRequest extends GridFieldDetailForm_ItemRequest
 
             $result = $api->order($xmlData);
         } catch (Exception $e) {
-
             $form->sessionMessage('An error occurred: ' . $e->getMessage(), ValidationResult::TYPE_ERROR, ValidationResult::CAST_HTML);
-
-            // Redirect after save
-            return $this->redirectAfterSave(false);
+            throw new FlowException($e->getMessage(), $e->getCode());
         }
 
         $message = 'Sent order to Flow.';

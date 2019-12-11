@@ -57,6 +57,7 @@ class ProcessProducts
 
     /**
      * @throws ValidationException
+     * @throws FlowException
      */
     private function processProducts()
     {
@@ -97,6 +98,8 @@ class ProcessProducts
 
                     // Keep counter of failed products
                     $this->ProductsFailed++;
+
+                    throw new FlowException($e->getMessage(), $e->getCode());
                 } finally {
                     $scheduledProduct->write();
                 }
@@ -122,6 +125,8 @@ class ProcessProducts
 
                             // Keep counter of failed products
                             $this->ProductsFailed++;
+
+                            throw new FlowException($e->getMessage(), $e->getCode());
                         } finally {
                             $scheduledVariation->write();
                         }
@@ -362,6 +367,7 @@ class ProcessProducts
     /**
      * @param CompletedTask $completedTask
      * @throws ValidationException
+     * @throws FlowException
      */
     private function runDelete(CompletedTask $completedTask)
     {
@@ -379,6 +385,8 @@ class ProcessProducts
             $completedTask->Status = FlowStatus::FAILED;
             $completedTask->addError($exception->getMessage());
             $completedTask->write();
+
+            throw new FlowException($e->getMessage(), $e->getCode());
         }
     }
 

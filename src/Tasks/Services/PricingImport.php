@@ -61,6 +61,7 @@ class PricingImport
     /**
      * @param CompletedTask $task
      * @throws \SilverStripe\ORM\ValidationException
+     * @throws FlowException
      */
     private function importData(CompletedTask $task)
     {
@@ -88,6 +89,7 @@ class PricingImport
             } catch (Exception $e) {
                 $task->Status = FlowStatus::FAILED;
                 $task->write();
+                throw new FlowException($e->getMessage(), $e->getCode());
             }
         }
 

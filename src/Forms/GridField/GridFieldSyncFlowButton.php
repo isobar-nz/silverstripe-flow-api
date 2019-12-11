@@ -44,42 +44,6 @@ class GridFieldSyncFlowButton implements GridField_HTMLProvider, GridField_Actio
         $this->type = $type;
     }
 
-    public function getURLHandlers($grid)
-    {
-        return [
-            'POST sync' => 'handleSync',
-        ];
-    }
-
-    private static $allowed_actions = [
-        'handleSync'
-    ];
-
-
-    /**
-     * Handles requests to reorder a set of IDs in a specific order.
-     *
-     * @param GridField $grid
-     * @param HTTPRequest $request
-     * @return string
-     * @throws HTTPResponse_Exception
-     */
-    public function handleSync($grid, $request)
-    {
-        $list = $grid->getList();
-        $modelClass = $grid->getModelClass();
-
-        // Save any un-committed changes to the gridfield
-        if (($form = $grid->getForm()) && ($record = $form->getRecord())) {
-
-        }
-
-        // Get records from the `GridFieldEditableColumns` column
-        $data = $request->postVar($grid->getName());
-
-        Controller::curr()->getResponse()->addHeader('X-Status', rawurlencode('Flow synced.'));
-        return $grid->FieldHolder();
-    }
 
     /**
      * Place the export button in a <p> tag below the field
@@ -137,6 +101,7 @@ class GridFieldSyncFlowButton implements GridField_HTMLProvider, GridField_Actio
      * @param string $actionName Action identifier, see {@link getActions()}.
      * @param array $arguments Arguments relevant for this
      * @param array $data All form data
+     * @throws \Isobar\Flow\Exception\FlowException
      */
     public function handleAction(GridField $gridField, $actionName, $arguments, $data)
     {

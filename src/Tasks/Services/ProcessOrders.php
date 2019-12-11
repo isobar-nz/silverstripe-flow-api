@@ -46,6 +46,7 @@ class ProcessOrders
 
     /**
      * @throws \SilverStripe\ORM\ValidationException
+     * @throws FlowException
      */
     private function processOrders()
     {
@@ -109,6 +110,7 @@ class ProcessOrders
                         $scheduledOrder->setField('Status', FlowStatus::FAILED);
 
                         $this->OrdersFailed++;
+                        throw $e;
                     }
 
                     if (isset($result['message'])) {

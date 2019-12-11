@@ -67,6 +67,7 @@ class ProductImport
     /**
      * @param CompletedTask $task
      * @throws ValidationException
+     * @throws FlowException
      */
     private function importData(CompletedTask $task)
     {
@@ -106,6 +107,7 @@ class ProductImport
                 $task->addError($e->getMessage());
 
                 $task->write();
+                throw new FlowException($e->getMessage(), $e->getCode());
             }
         }
 
