@@ -5,16 +5,12 @@ namespace Isobar\Flow\Tasks;
 use Exception;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\ProcessOrders;
-use SilverStripe\Control\HTTPRequest;
-use SilverStripe\Control\NullHTTPRequest;
-use SilverStripe\CronTask\Interfaces\CronTask;
-use SilverStripe\Dev\BuildTask;
 
 /**
  * Class ProcessOrdersTask
  * @package App\Flow\Tasks
  */
-class ProcessOrdersTask extends BuildTask implements CronTask
+class ProcessOrdersTask extends BaseFlowTask
 {
     /**
      * @var string
@@ -41,20 +37,10 @@ class ProcessOrdersTask extends BuildTask implements CronTask
 
     /**
      * Process handler for cron task
+     * @throws FlowException
      */
     public function process()
     {
-        $this->run(new NullHTTPRequest());
-    }
-
-    /**
-     * @param HTTPRequest $request
-     * @throws FlowException
-     */
-    public function run($request)
-    {
-        ini_set('memory_limit', -1);
-
         $flowService = new ProcessOrders();
 
         try {

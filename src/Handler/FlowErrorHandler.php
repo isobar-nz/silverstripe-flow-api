@@ -6,6 +6,8 @@ use Isobar\Flow\Exception\FlowException;
 use Monolog\Handler\AbstractHandler;
 use Monolog\Logger;
 use Psr\Log\InvalidArgumentException;
+use SilverStripe\Control\Email\Email;
+use SilverStripe\Core\Convert;
 
 class FlowErrorHandler extends AbstractHandler
 {
@@ -14,6 +16,12 @@ class FlowErrorHandler extends AbstractHandler
      * @var array
      */
     protected $to;
+
+    /**
+     * The email address from which the message will be sent
+     * @var string
+     */
+    protected $from;
 
     /**
      * The subject of the email
@@ -40,18 +48,6 @@ class FlowErrorHandler extends AbstractHandler
     protected $maxColumnWidth;
 
     /**
-     * The Content-type for the message
-     * @var string
-     */
-    protected $contentType = 'text/plain';
-
-    /**
-     * The encoding for the message
-     * @var string
-     */
-    protected $encoding = 'utf-8';
-
-    /**
      * @param string|array $to The receiver of the mail
      * @param string $subject The subject of the mail
      * @param string $from The sender of the mail
@@ -64,7 +60,7 @@ class FlowErrorHandler extends AbstractHandler
         parent::__construct($level, $bubble);
         $this->to = is_array($to) ? $to : [$to];
         $this->subject = $subject;
-        $this->addHeader(sprintf('From: %s', $from));
+        $this->from =$from;
         $this->maxColumnWidth = $maxColumnWidth;
     }
 
@@ -84,7 +80,6 @@ class FlowErrorHandler extends AbstractHandler
      */
     public function handle(array $record)
     {
-        // TODO: Implement handle() method.
         // Send an email
 
         // Context
@@ -132,34 +127,18 @@ class FlowErrorHandler extends AbstractHandler
      */
     protected function send($content)
     {
-        $content = wordwrap($content, $this->maxColumnWidth);
-        $headers = ltrim(implode("\r\n", $this->headers) . "\r\n", "\r\n");
-        $headers .= 'Content-type: ' . $this->getContentType() . '; charset=' . $this->getEncoding() . "\r\n";
-        if ($this->getContentType() == 'text/html' && false === strpos($headers, 'MIME-Version:')) {
-            $headers .= 'MIME-Version: 1.0' . "\r\n";
-        }
+        $content = wordwrap(Convert::raw2xml($content), $this->maxColumnWidth);
 
-        $subject = $this->subject;
+        /** @var Email $email */
+        $email = Email::create($this->from);
+        $email->setSubject($this->subject);
+        $email->setBody($content);
 
-        $parameters = implode(' ', $this->parameters);
         foreach ($this->to as $to) {
-            mail($to, $subject, $content, $headers, $parameters);
+
+            $email->setTo($to);
+            $email->sendPlain();
         }
     }
 
-    /**
-     * @return string $contentType
-     */
-    public function getContentType()
-    {
-        return $this->contentType;
-    }
-
-    /**
-     * @return string $encoding
-     */
-    public function getEncoding()
-    {
-        return $this->encoding;
-    }
 }

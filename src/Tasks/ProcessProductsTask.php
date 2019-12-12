@@ -2,21 +2,15 @@
 
 namespace Isobar\Flow\Tasks;
 
-use Exception;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\ProcessProducts;
 use Isobar\Flow\Tasks\Services\StockImport;
-use SilverStripe\Control\HTTPRequest;
-use SilverStripe\Control\NullHTTPRequest;
-use SilverStripe\CronTask\Interfaces\CronTask;
-use SilverStripe\Dev\BuildTask;
-use SilverStripe\ORM\ValidationException;
 
 /**
  * Class ProcessProductsTask
  * @package App\Flow\Tasks
  */
-class ProcessProductsTask extends BuildTask implements CronTask
+class ProcessProductsTask extends BaseFlowTask
 {
     /**
      * @var string
@@ -47,17 +41,6 @@ class ProcessProductsTask extends BuildTask implements CronTask
      */
     public function process()
     {
-        $this->run(new NullHTTPRequest());
-    }
-
-    /**
-     * @param HTTPRequest $request
-     * @throws FlowException
-     */
-    public function run($request)
-    {
-        ini_set('memory_limit', -1);
-
         $flowService = new ProcessProducts();
 
         $flowService->runProcessData();
@@ -66,6 +49,5 @@ class ProcessProductsTask extends BuildTask implements CronTask
         $flowStockService = new StockImport();
 
         $flowStockService->runImport();
-
     }
 }

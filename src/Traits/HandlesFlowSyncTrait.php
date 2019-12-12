@@ -9,6 +9,7 @@ use Isobar\Flow\Tasks\ProcessProductsTask;
 use Isobar\Flow\Tasks\ProductImportTask;
 use Isobar\Flow\Tasks\StockImportTask;
 use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Core\Environment;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
@@ -49,8 +50,8 @@ trait HandlesFlowSyncTrait
     public function doFlowSync($data, $form, $gridField = null)
     {
         ob_start();
-        ini_set('memory_limit', -1);
-        ini_set('max_execution_time', 100000);
+        Environment::increaseMemoryLimitTo(-1);
+        Environment::increaseTimeLimitTo(100000);
 
         $message = 'Flow synced.';
         $code = 200;
