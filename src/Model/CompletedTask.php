@@ -5,6 +5,7 @@ namespace Isobar\Flow\Model;
 
 use Isobar\Flow\Services\FlowStatus;
 use App\Traits\ReadOnlyDataObject;
+use Isobar\Flow\Traits\HandlesFlowSyncTrait;
 use SilverStripe\Admin\AdminRootController;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Email\Email;

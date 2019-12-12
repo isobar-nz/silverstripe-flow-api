@@ -2,18 +2,13 @@
 
 namespace Isobar\Flow\Tasks;
 
-use Isobar\Flow\Extensions\OrderExtension;
-use SilverStripe\Control\HTTPRequest;
-use SilverStripe\Control\NullHTTPRequest;
-use SilverStripe\CronTask\Interfaces\CronTask;
-use SilverStripe\Dev\BuildTask;
 use SwipeStripe\Order\Order;
 
 /**
  * Class CheckOrdersTask
  * @package App\Flow\Tasks
  */
-class CheckOrdersTask extends BuildTask implements CronTask
+class CheckOrdersTask extends BaseFlowTask
 {
     /**
      * @var string
@@ -40,25 +35,15 @@ class CheckOrdersTask extends BuildTask implements CronTask
 
     /**
      * Process handler for cron task
+     * @throws \Isobar\Flow\Exception\FlowException
      */
     public function process()
     {
-        $this->run(new NullHTTPRequest());
-    }
-
-    /**
-     * @param HTTPRequest $request
-     */
-    public function run($request)
-    {
-        ini_set('memory_limit', -1);
-
         // Get all orders not yet sent to Flow within the valid time period
         $orders = Order::get()
             ->filter([
-                'Scheduled'           => 0,
-                'IsCart'              => 0,
-                'Created:GreaterThan' => '2019-05-24 00:00:00'
+                'Scheduled' => 0,
+                'IsCart'    => 0
             ]);
 
         // run through and schedule

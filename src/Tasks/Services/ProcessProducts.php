@@ -4,6 +4,7 @@
 namespace Isobar\Flow\Tasks\Services;
 
 use App\Ecommerce\Product\WineProduct;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\CompletedTask;
 use Isobar\Flow\Model\ScheduledWineProduct;
@@ -38,20 +39,25 @@ class ProcessProducts
 
     /**
      * Processes all orders from scheduled list
-     * @throws ValidationException
+     * @throws FlowException
      */
     public function runProcessData()
     {
         echo "Beginning processing products\n\n";
 
         // Process scheduled products and import
-        $this->processProducts();
+        try {
+            $this->processProducts();
+        } catch (ValidationException $e) {
+            throw new FlowException($e->getMessage(), $e->getCode());
+        }
 
         echo "\nCompleted processing products\n\n";
     }
 
     /**
      * @throws ValidationException
+     * @throws FlowException
      */
     private function processProducts()
     {
@@ -92,6 +98,8 @@ class ProcessProducts
 
                     // Keep counter of failed products
                     $this->ProductsFailed++;
+
+                    throw new FlowException($e->getMessage(), $e->getCode());
                 } finally {
                     $scheduledProduct->write();
                 }
@@ -117,6 +125,8 @@ class ProcessProducts
 
                             // Keep counter of failed products
                             $this->ProductsFailed++;
+
+                            throw new FlowException($e->getMessage(), $e->getCode());
                         } finally {
                             $scheduledVariation->write();
                         }
@@ -150,7 +160,7 @@ class ProcessProducts
      *
      * @param ScheduledWineProduct $scheduledProduct
      * @return int
-     * @throws Exception
+     * @throws ValidationException
      */
     private function processWineProduct(ScheduledWineProduct $scheduledProduct): int
     {
@@ -207,8 +217,7 @@ class ProcessProducts
      *
      * @param ScheduledWineVariation $scheduledWineVariation
      * @param int $wineProductID
-     *
-     * @throws Exception
+     * @throws FlowException
      */
     private function processWineVariation(ScheduledWineVariation $scheduledWineVariation, int $wineProductID)
     {
@@ -243,10 +252,10 @@ class ProcessProducts
                     $wineProduct->ProductVariations()->add($wineProductVariation);
                 }
             } else {
-                throw new Exception('Wine product not found');
+                throw new FlowException('Wine product not found');
             }
         } else {
-            throw new Exception('Missing product ID');
+            throw new FlowException('Missing product ID');
         }
     }
 
@@ -358,6 +367,7 @@ class ProcessProducts
     /**
      * @param CompletedTask $completedTask
      * @throws ValidationException
+     * @throws FlowException
      */
     private function runDelete(CompletedTask $completedTask)
     {
@@ -375,6 +385,8 @@ class ProcessProducts
             $completedTask->Status = FlowStatus::FAILED;
             $completedTask->addError($exception->getMessage());
             $completedTask->write();
+
+            throw new FlowException($e->getMessage(), $e->getCode());
         }
     }
 

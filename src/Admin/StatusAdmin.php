@@ -4,16 +4,12 @@ namespace Isobar\Flow\Admin;
 
 use Exception;
 use Isobar\Flow\Services\EnvironmentSettings;
-use Isobar\Flow\Tasks\ProcessProductsTask;
-use Isobar\Flow\Tasks\ProductImportTask;
-use Isobar\Flow\Tasks\StockImportTask;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
+use Isobar\Flow\Traits\HandlesFlowSyncTrait;
 use LittleGiant\SinglePageAdmin\SinglePageAdmin;
 use Psr\Http\Message\ResponseInterface;
 use SilverStripe\Admin\LeftAndMain;
-use SilverStripe\Control\HTTPResponse;
-use SilverStripe\Control\HTTPResponse_Exception;
 use SilverStripe\Core\Environment;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
@@ -107,70 +103,13 @@ class StatusAdmin extends LeftAndMain implements PermissionProvider
             ]))
         ]);
 
-        $form->Actions()->push(
-            FormAction::create('doFlowSync', 'Sync from Flow')
-                ->addExtraClass('btn btn-primary font-icon-sync')
-                ->setUseButtonTag(true)
-        );
+//        $form->Actions()->push(
+//            FormAction::create('doFlowSync', 'Sync from Flow')
+//                ->addExtraClass('btn btn-primary font-icon-sync')
+//                ->setUseButtonTag(true)
+//        );
 
         return $form;
-    }
-
-    /**
-     * @param $data
-     * @param $form
-     * @return HTTPResponse
-     * @throws HTTPResponse_Exception
-     */
-    public function doFlowSync($data, $form)
-    {
-        ob_start();
-        ini_set('memory_limit', -1);
-        ini_set('max_execution_time', 100000);
-
-        $request = $this->getRequest();
-        $response = $this->getResponseNegotiator()->respond($request);
-
-        $code = 200;
-        $message = 'Flow synced.';
-
-        // Product
-        $productTask = new ProductImportTask();
-
-        try {
-            $productTask->process();
-        } catch (Exception $e) {
-            $message = $e->getMessage();
-            $code = $e->getCode();
-        }
-
-        // Process
-        $productTask = new ProcessProductsTask();
-
-        try {
-            $productTask->process();
-        } catch (Exception $e) {
-            $message = $e->getMessage();
-            $code = $e->getCode();
-        }
-
-        // Stock
-        $stockTask = new StockImportTask();
-
-        try {
-            $stockTask->process();
-        } catch (Exception $e) {
-            $message = $e->getMessage();
-            $code = $e->getCode();
-        }
-
-        // Pass on message
-        $response->addHeader('X-Status', rawurlencode($message));
-        $response->setStatusCode($code);
-
-        // Suppress echo
-        ob_end_clean();
-        return $response;
     }
 
     /**

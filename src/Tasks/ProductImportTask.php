@@ -2,14 +2,9 @@
 
 namespace Isobar\Flow\Tasks;
 
-use Exception;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\PricingImport;
 use Isobar\Flow\Tasks\Services\ProductImport;
-use SilverStripe\Control\HTTPRequest;
-use SilverStripe\Control\NullHTTPRequest;
-use SilverStripe\CronTask\Interfaces\CronTask;
-use SilverStripe\Dev\BuildTask;
-use SilverStripe\ORM\ValidationException;
 
 /**
  * Class ProductImportTask
@@ -19,7 +14,7 @@ use SilverStripe\ORM\ValidationException;
  * @package App\Flow\Tasks
  * @co-author Lauren Hodgson <lauren.hodgson@littlegiant.co.nz>
  */
-class ProductImportTask extends BuildTask implements CronTask
+class ProductImportTask extends BaseFlowTask
 {
     /**
      * @var string
@@ -45,41 +40,22 @@ class ProductImportTask extends BuildTask implements CronTask
     }
 
     /**
-     * Import handler for cron task
+     * When this script is supposed to run the CronTaskController will execute
+     * process().
+     *
+     * @return void
+     * @throws FlowException
      */
     public function process()
     {
-        $this->run(new NullHTTPRequest());
-    }
-
-    /**
-     * @param HTTPRequest $request
-     */
-    public function run($request)
-    {
-        ini_set('memory_limit', -1);
-        ini_set('max_execution_time', 100000);
-
         // Product import
         $flowService = new ProductImport();
 
-        try {
-            $task = $flowService->runImport();
-        } catch (Exception $e) {
-            echo $e->getMessage();
-
-            return;
-        }
+        $task = $flowService->runImport();
 
         // Pricing import
         $flowPricingService = new PricingImport($task);
 
-        try {
-            $flowPricingService->runImport();
-        } catch (ValidationException $e) {
-            echo $e->getMessage();
-
-            return;
-        }
+        $flowPricingService->runImport();
     }
 }

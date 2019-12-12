@@ -3,6 +3,8 @@
 
 namespace Isobar\Flow\Tasks\Services;
 
+use Exception;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowAPIConnector;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\CompletedTask;
@@ -10,8 +12,6 @@ use Isobar\Flow\Model\ScheduledWineProduct;
 use Isobar\Flow\Model\ScheduledWineVariation;
 use Isobar\Flow\Services\Product\PricingAPIService;
 use SilverStripe\Control\Director;
-use SilverStripe\Control\HTTPResponse_Exception;
-use SilverStripe\ORM\ValidationException;
 
 /**
  * Class PricingImport
@@ -35,8 +35,7 @@ class PricingImport
 
     /**
      * Imports data from Flow XML feed
-     *
-     * @throws ValidationException
+     * @throws FlowException
      */
     public function runImport()
     {
@@ -48,7 +47,11 @@ class PricingImport
         $task = $this->CompletedTask;
 
         // import PIMS data to temp table
-        $this->importData($task);
+        try {
+            $this->importData($task);
+        } catch (Exception $e) {
+            throw new FlowException($e->getMessage(), $e->getCode());
+        }
 
         if (Director::is_cli()) {
             echo "\nCompleted Pricing Import\n\n";
@@ -57,7 +60,8 @@ class PricingImport
 
     /**
      * @param CompletedTask $task
-     * @throws ValidationException
+     * @throws \SilverStripe\ORM\ValidationException
+     * @throws FlowException
      */
     private function importData(CompletedTask $task)
     {
@@ -82,9 +86,10 @@ class PricingImport
         foreach ($result as $pricing) {
             try {
                 $this->importPricingData($pricing, $task);
-            } catch (ValidationException $e) {
+            } catch (Exception $e) {
                 $task->Status = FlowStatus::FAILED;
                 $task->write();
+                throw new FlowException($e->getMessage(), $e->getCode());
             }
         }
 
@@ -95,7 +100,7 @@ class PricingImport
     /**
      * @param array $pricing
      * @param CompletedTask $task
-     * @throws ValidationException
+     * @throws \SilverStripe\ORM\ValidationException
      */
     public function importPricingData(array $pricing, CompletedTask $task)
     {

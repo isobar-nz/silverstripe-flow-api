@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Isobar\Flow\Extensions;
 
 use Exception;
+use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
 use SilverStripe\Forms\CheckboxField;
@@ -54,6 +55,7 @@ class OrderExtension extends DataExtension
 
     /**
      * Send order data to Flow
+     * @throws FlowException
      */
     public function paymentCaptured()
     {
@@ -62,6 +64,7 @@ class OrderExtension extends DataExtension
 
     /**
      *
+     * @throws FlowException
      */
     public function scheduleOrder()
     {
@@ -79,29 +82,31 @@ class OrderExtension extends DataExtension
             try {
                 $scheduledOrder->write();
             } catch (ValidationException $e) {
-                error_log($e->getMessage());
+                throw new FlowException($e->getMessage(), $e->getCode());
             }
 
             $this->owner->setField('Scheduled', 1);
             try {
                 $this->owner->write();
             } catch (ValidationException $e) {
-                error_log($e->getMessage());
+                throw new FlowException($e->getMessage(), $e->getCode());
             }
         }
     }
 
+    /**
+     * @return mixed
+     * @throws FlowException
+     */
     public function formatDataForFlow()
     {
         // Get specific region data
         /** @var ShippingRegion $billingAddressRegionObject */
-        /** @noinspection PhpUndefinedFieldInspection */
         $billingAddressRegionObject = ShippingRegion::get()->byID($this->owner->BillingAddressRegion);
 
         $billingAddressRegion = $billingAddressRegionObject ? $billingAddressRegionObject->Title : '';
 
         /** @var ShippingRegion $shippingAddressRegionObject */
-        /** @noinspection PhpUndefinedFieldInspection */
         $shippingAddressRegionObject = ShippingRegion::get()->byID($this->owner->ShippingAddressRegion);
 
         $shippingAddressRegion = $shippingAddressRegionObject ? $shippingAddressRegionObject->Title : '';
@@ -110,37 +115,16 @@ class OrderExtension extends DataExtension
         $countryList = i18n::getData()->getCountries();
 
         // If the full title is available use that
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
         $billingCountry = array_key_exists($this->owner->BillingAddressCountry, $countryList)
             ? $countryList[$this->owner->BillingAddressCountry]
             : $this->owner->BillingAddressCountry;
 
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
         $shippingCountry = array_key_exists($this->owner->ShippingAddressCountry, $countryList)
             ? $countryList[$this->owner->ShippingAddressCountry]
             : $this->owner->ShippingAddressCountry;
 
         // Initial data: all fields are required
         // Fields must be in the correct order
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
-        /** @noinspection PhpUndefinedFieldInspection */
         $data = [
             'OrderNo'     => $this->owner->ID,
             'OrderDate'   => $this->owner->dbObject('ConfirmationTime')->Format('Y-MM-dd'),
@@ -200,7 +184,6 @@ class OrderExtension extends DataExtension
         ];
 
         // Coupon
-        /** @noinspection PhpUndefinedMethodInspection */
         $couponAddOns = $this->owner->OrderCouponAddOns();
 
         /** @var OrderCouponAddOn $couponAddOn */
@@ -223,10 +206,8 @@ class OrderExtension extends DataExtension
         }
 
         // Member functions
-        /** @noinspection PhpUndefinedFieldInspection */
         if ($this->owner->MemberID) {
             /** @var Member $member */
-            /** @noinspection PhpUndefinedMethodInspection */
             $member = $this->owner->Member();
 
             $data['CustomerNo']        = $member->ID;
@@ -278,7 +259,6 @@ class OrderExtension extends DataExtension
         });
 
         // Look through products
-        /** @noinspection PhpUndefinedMethodInspection */
         $orderItems = $this->owner->OrderItems();
 
         /** @var OrderItem $orderItem */
@@ -298,7 +278,7 @@ class OrderExtension extends DataExtension
                 try {
                     $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
                 } catch (Exception $e) {
-                    error_log($e->getMessage());
+                    throw new FlowException($e->getMessage(), $e->getCode());
                 }
             } else {
                 // Order lines
@@ -309,7 +289,7 @@ class OrderExtension extends DataExtension
                     $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
                     $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
                 } catch (Exception $e) {
-                    error_log($e->getMessage());
+                    throw new FlowException($e->getMessage(), $e->getCode());
                 }
 
             }
