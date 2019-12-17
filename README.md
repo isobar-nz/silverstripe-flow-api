@@ -36,6 +36,7 @@ SilverStripe\Core\Injector\Injector:
       - There was an error on your test site #subject
       - from@domain.com #from
       - error
+      - webadmin@domain.com #bcc
     properties:
       ContentType: text/html
       Formatter: %$SilverStripe\Logging\DetailedErrorFormatter

@@ -233,8 +233,8 @@ class OrderExtension extends DataExtension
             /** @var Payment $payment */
             foreach ($payments as $payment) {
                 if ($payment->isComplete()) {
-                    $data['PaymentMethod']        = $payment->getGatewayTitle();
-                    $data['PaymentTransactionId'] = $payment->TransactionReference;
+                    $data['PaymentMethod']        = htmlspecialchars($payment->getGatewayTitle());
+                    $data['PaymentTransactionId'] = htmlspecialchars($payment->TransactionReference);
                     $data['PaymentAmount']        = $payment->getAmount();
                     $data['PaymentCurrency']      = $payment->getCurrency();
                 }
@@ -255,7 +255,8 @@ class OrderExtension extends DataExtension
                 // Ensure negative values are parsed correctly
                 $value = abs($value);
             }
-            $xmlOrder->addChild($key, (string)$value);
+
+            $xmlOrder->addChild($key, htmlspecialchars((string)$value));
         });
 
         // Look through products

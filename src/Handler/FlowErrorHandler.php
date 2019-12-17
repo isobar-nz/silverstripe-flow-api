@@ -24,6 +24,12 @@ class FlowErrorHandler extends AbstractHandler
     protected $from;
 
     /**
+     * Optional BCC email address
+     * @var string
+     */
+    protected $bcc;
+
+    /**
      * The subject of the email
      * @var string
      */
@@ -52,15 +58,17 @@ class FlowErrorHandler extends AbstractHandler
      * @param string $subject The subject of the mail
      * @param string $from The sender of the mail
      * @param int $level The minimum logging level at which this handler will be triggered
+     * @param null $bcc
      * @param bool $bubble Whether the messages that are handled can bubble up the stack or not
      * @param int $maxColumnWidth The maximum column width that the message lines will have
      */
-    public function __construct($to, $subject, $from, $level = Logger::ERROR, $bubble = true, $maxColumnWidth = 70)
+    public function __construct($to, $subject, $from, $level = Logger::ERROR, $bcc = null, $bubble = true, $maxColumnWidth = 70)
     {
         parent::__construct($level, $bubble);
         $this->to = is_array($to) ? $to : [$to];
         $this->subject = $subject;
-        $this->from =$from;
+        $this->from = $from;
+        $this->bcc = $bcc;
         $this->maxColumnWidth = $maxColumnWidth;
     }
 
@@ -107,12 +115,12 @@ class FlowErrorHandler extends AbstractHandler
     /**
      * Add headers to the message
      *
-     * @param  string|array $headers Custom added headers
+     * @param string|array $headers Custom added headers
      * @return self
      */
     public function addHeader($headers)
     {
-        foreach ((array) $headers as $header) {
+        foreach ((array)$headers as $header) {
             if (strpos($header, "\n") !== false || strpos($header, "\r") !== false) {
                 throw new InvalidArgumentException('Headers can not contain newline characters for security reasons');
             }
@@ -134,8 +142,11 @@ class FlowErrorHandler extends AbstractHandler
         $email->setSubject($this->subject);
         $email->setBody($content);
 
-        foreach ($this->to as $to) {
+        if ($this->bcc) {
+            $email->addBCC($this->bcc);
+        }
 
+        foreach ($this->to as $to) {
             $email->setTo($to);
             $email->sendPlain();
         }

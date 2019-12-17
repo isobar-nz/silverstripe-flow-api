@@ -2,7 +2,10 @@
 
 namespace Isobar\Flow\Tasks;
 
+use Isobar\Flow\Exception\FlowException;
+use SilverStripe\Control\HTTPRequest;
 use SwipeStripe\Order\Order;
+use SwipeStripe\Order\Status\OrderStatus;
 
 /**
  * Class CheckOrdersTask
@@ -44,6 +47,9 @@ class CheckOrdersTask extends BaseFlowTask
             ->filter([
                 'Scheduled' => 0,
                 'IsCart'    => 0
+            ])->exclude('Status', [
+                OrderStatus::CANCELLED,
+                OrderStatus::REFUNDED
             ]);
 
         // run through and schedule
@@ -55,5 +61,14 @@ class CheckOrdersTask extends BaseFlowTask
                 $order->scheduleOrder();
             }
         }
+    }
+
+    /**
+     * @param HTTPRequest $request
+     * @throws FlowException
+     */
+    public function run($request)
+    {
+        $this->process();
     }
 }

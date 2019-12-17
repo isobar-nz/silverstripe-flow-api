@@ -10,6 +10,7 @@ use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
 use Isobar\Flow\Services\Product\OrderAPIService;
 use App\Pages\MediaPages\WineClubEvent;
+use SwipeStripe\Order\Order;
 use SwipeStripe\Order\Status\OrderStatus;
 use SwipeStripe\Order\Status\OrderStatusUpdate;
 
@@ -58,6 +59,19 @@ class ProcessOrders
         if ($scheduledOrders->count()) {
             /** @var ScheduledOrder $scheduledOrder */
             foreach ($scheduledOrders as $scheduledOrder) {
+
+                // Get the Order
+                /** @var Order $order */
+                $order = $scheduledOrder->Order();
+
+                // If the order status has changed to refunded/cancelled etc, do not send to flow.
+                if ($order->Status != OrderStatus::PENDING) {
+                    $scheduledOrder->setField('Status', FlowStatus::CANCELLED);
+                    $scheduledOrder->write();
+
+                    continue;
+                }
+
                 $scheduledOrder->setField('Status', FlowStatus::PROCESSING);
 
                 $xmlData = $scheduledOrder->XmlData;
@@ -74,8 +88,7 @@ class ProcessOrders
 
                 // TODO update for Flow integration with Events
                 // if there are only events in the cart, then do not post to flow
-                /** @noinspection PhpUndefinedMethodInspection */
-                $items = $scheduledOrder->Order()->OrderItems();
+                $items = $order->OrderItems();
                 $eventsCount = 0;
                 foreach ($items as $item) {
                     if ($item->PurchasableClass === WineClubEvent::class) {
@@ -83,7 +96,6 @@ class ProcessOrders
                     }
                 }
 
-                /** @noinspection PhpUndefinedMethodInspection */
                 if ($eventsCount === $items->count()) {
                     // Some sort of error which we'll want to log
                     $statusUpdateData = [

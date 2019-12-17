@@ -5,6 +5,7 @@ namespace Isobar\Flow\Tasks;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\ProcessProducts;
 use Isobar\Flow\Tasks\Services\StockImport;
+use SilverStripe\Control\HTTPRequest;
 
 /**
  * Class ProcessProductsTask
@@ -49,5 +50,14 @@ class ProcessProductsTask extends BaseFlowTask
         $flowStockService = new StockImport();
 
         $flowStockService->runImport();
+    }
+
+    /**
+     * @param HTTPRequest $request
+     * @throws FlowException
+     */
+    public function run($request)
+    {
+        $this->process();
     }
 }

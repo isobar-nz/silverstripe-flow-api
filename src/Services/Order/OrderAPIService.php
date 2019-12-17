@@ -20,7 +20,7 @@ class OrderAPIService implements OrderServiceInterface
     protected $connector;
 
     /**
-     * @var ProductServiceInterface
+     * @var OrderServiceInterface
      */
     protected $service;
 
@@ -65,7 +65,7 @@ class OrderAPIService implements OrderServiceInterface
 
 
     /**
-     * @return ProductServiceInterface
+     * @return OrderServiceInterface
      */
     public function getService()
     {
@@ -73,10 +73,10 @@ class OrderAPIService implements OrderServiceInterface
     }
 
     /**
-     * @param ProductServiceInterface $service
+     * @param OrderServiceInterface $service
      * @return $this
      */
-    public function setService(ProductServiceInterface $service)
+    public function setService(OrderServiceInterface $service)
     {
         $this->service = $service;
         return $this;

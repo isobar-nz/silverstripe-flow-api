@@ -5,6 +5,7 @@ namespace Isobar\Flow\Tasks;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\PricingImport;
 use Isobar\Flow\Tasks\Services\ProductImport;
+use SilverStripe\Control\HTTPRequest;
 
 /**
  * Class ProductImportTask
@@ -57,5 +58,14 @@ class ProductImportTask extends BaseFlowTask
         $flowPricingService = new PricingImport($task);
 
         $flowPricingService->runImport();
+    }
+
+    /**
+     * @param HTTPRequest $request
+     * @throws FlowException
+     */
+    public function run($request)
+    {
+        $this->process();
     }
 }

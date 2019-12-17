@@ -5,6 +5,7 @@ namespace Isobar\Flow\Tasks;
 use Exception;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\ProcessOrders;
+use SilverStripe\Control\HTTPRequest;
 
 /**
  * Class ProcessOrdersTask
@@ -48,5 +49,14 @@ class ProcessOrdersTask extends BaseFlowTask
         } catch (Exception $e) {
             throw new FlowException($e->getMessage(), $e->getCode());
         }
+    }
+
+    /**
+     * @param HTTPRequest $request
+     * @throws FlowException
+     */
+    public function run($request)
+    {
+        $this->process();
     }
 }
