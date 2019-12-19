@@ -15,6 +15,8 @@ use SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest;
 use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\ORM\ValidationResult;
+use SwipeStripe\Order\Status\OrderStatus;
+use SwipeStripe\Order\Status\OrderStatusUpdate;
 
 /**
  * Class ScheduledOrder_ItemRequest
@@ -77,6 +79,33 @@ class ScheduledOrder_ItemRequest extends GridFieldDetailForm_ItemRequest
 
         $this->record->setField('Status', FlowStatus::COMPLETED);
         $this->record->write();
+
+        // Save order record
+        $statusUpdateData = [
+            'NotifyCustomer'  => 0,
+            'CustomerVisible' => 0,
+            'Message'         => $message,
+            'Status'          => OrderStatus::COMPLETED
+        ];
+
+        $order = $this->record->Order();
+
+        if ($order && $order->exists()) {
+            // Create status update
+            $update = OrderStatusUpdate::create($statusUpdateData);
+
+            $update->write();
+
+            $order->OrderStatusUpdates()->add($update);
+
+            // Mark as sent to flow
+            $order->setField('SentToFlow', 1);
+
+            // Ensure order status itself is correct
+            $order->setField('Status', $this->record->Status);
+
+            $order->write();
+        }
 
         $form->sessionMessage($message, 'good', ValidationResult::CAST_HTML);
 
