@@ -20,6 +20,8 @@ use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 use SwipeStripe\Coupons\Order\OrderCouponAddOn;
 use SwipeStripe\Order\Order;
 use SwipeStripe\Order\OrderItem\OrderItem;
+use SwipeStripe\Order\Status\OrderStatus;
+use SwipeStripe\Order\Status\OrderStatusUpdate;
 use SwipeStripe\Shipping\Order\ShippingAddOn;
 use SwipeStripe\Shipping\ShippingRegion;
 
@@ -41,13 +43,10 @@ class OrderExtension extends DataExtension
 
     public function updateCMSFields(FieldList $fields)
     {
-        $xml = htmlentities($this->formatDataForFlow());
-
 //         Add an example to the Flow tab
         $fields->addFieldsToTab('Root.Flow', [
             CheckboxField::create('SentToFlow', 'Order has been sent to flow'),
             CheckboxField::create('Scheduled', 'Order has been scheduled for import'),
-//            LiteralField::create('XmlData', DBField::create_field(DBHTMLText::class, '<div style="border:1px solid #e7ebf0;padding: 10px; background-color: #f1f3f6">' . $xml . '</div>'))
         ]);
 
 
@@ -63,7 +62,6 @@ class OrderExtension extends DataExtension
     }
 
     /**
-     *
      * @throws FlowException
      */
     public function scheduleOrder()
@@ -71,21 +69,46 @@ class OrderExtension extends DataExtension
         if (!$this->owner->Scheduled) {
             $xml = $this->formatDataForFlow();
 
-            // Create scheduled order object
-            $scheduledOrder = ScheduledOrder::create([
-                'OrderID' => $this->owner->ID,
-                'Active'  => 1,
-                'Status'  => FlowStatus::PENDING,
-                'XmlData' => $xml
-            ]);
+            // If it is false, we don't want to continue scheduling
+            if ($xml === false) {
+                // Add a status update
+                $statusUpdateData = [
+                    'NotifyCustomer'  => 0,
+                    'CustomerVisible' => 0,
+                    'Message'         => 'Order does not contain any Flow products: cancelling scheduled order.',
+                    'Status'          => OrderStatus::COMPLETED
+                ];
 
-            try {
-                $scheduledOrder->write();
-            } catch (ValidationException $e) {
-                throw new FlowException($e->getMessage(), $e->getCode());
+                $update = OrderStatusUpdate::create($statusUpdateData);
+
+                try {
+                    $update->write();
+                } catch (ValidationException $e) {
+                    throw new FlowException($e->getMessage(), $e->getCode());
+                }
+
+                $this->owner->OrderStatusUpdates()->add($update);
+
+                $this->owner->setField('Scheduled', 1);
+                $this->owner->setField('Status', OrderStatus::COMPLETED);
+            } else {
+                // Create scheduled order object
+                $scheduledOrder = ScheduledOrder::create([
+                    'OrderID' => $this->owner->ID,
+                    'Active'  => 1,
+                    'Status'  => FlowStatus::PENDING,
+                    'XmlData' => $xml
+                ]);
+
+                try {
+                    $scheduledOrder->write();
+                } catch (ValidationException $e) {
+                    throw new FlowException($e->getMessage(), $e->getCode());
+                }
+
+                $this->owner->setField('Scheduled', 1);
             }
 
-            $this->owner->setField('Scheduled', 1);
             try {
                 $this->owner->write();
             } catch (ValidationException $e) {
@@ -95,7 +118,7 @@ class OrderExtension extends DataExtension
     }
 
     /**
-     * @return mixed
+     * @return SimpleXMLElement|boolean
      * @throws FlowException
      */
     public function formatDataForFlow()
@@ -262,38 +285,54 @@ class OrderExtension extends DataExtension
         // Look through products
         $orderItems = $this->owner->OrderItems();
 
+        $validOrderItems = false;
+
         /** @var OrderItem $orderItem */
         foreach ($orderItems as $orderItem) {
             // Get SKU or forecast group
             $variation = ComplexProductVariation::get()->byID($orderItem->PurchasableID);
 
             if ($variation && $variation->exists()) {
-                // TODO: Case for purchasing non-variation
-//            $sku = $purchaseable instanceof ComplexProductVariation ? $purchaseable->SKU : $purchaseable->ForecastGroup;
+                // Only add if it has an SKU
+                if ($variation->SKU) {
+                    $validOrderItems = true;
 
-                // Order lines
-                $orderLine = $xmlOrder->addChild('orderLines');
+                    // Order lines
+                    $orderLine = $xmlOrder->addChild('orderLines');
 
-                $orderLine->addChild('ProductCode', $variation->SKU);
-                $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
-                try {
-                    $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
-                } catch (Exception $e) {
-                    throw new FlowException($e->getMessage(), $e->getCode());
-                }
-            } else {
-                // Order lines
-                $orderLine = $xmlOrder->addChild('orderLines');
-
-                try {
-                    $orderLine->addChild('ProductCode', $orderItem->Purchasable()->ForecastGroup ?: $orderItem->Purchasable()->SKU);
+                    $orderLine->addChild('ProductCode', $variation->SKU);
                     $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
-                    $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
-                } catch (Exception $e) {
-                    throw new FlowException($e->getMessage(), $e->getCode());
+                    try {
+                        $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                    } catch (Exception $e) {
+                        throw new FlowException($e->getMessage(), $e->getCode());
+                    }
                 }
 
+
+            } else {
+                $sku = $orderItem->Purchasable()->ForecastGroup ?: $orderItem->Purchasable()->SKU;
+
+                if ($sku) {
+                    $validOrderItems = true;
+
+                    // Order lines
+                    $orderLine = $xmlOrder->addChild('orderLines');
+
+                    try {
+                        $orderLine->addChild('ProductCode', $sku);
+                        $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
+                        $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                    } catch (Exception $e) {
+                        throw new FlowException($e->getMessage(), $e->getCode());
+                    }
+                }
             }
+        }
+
+        // If there are no valid entries, return false
+        if ($validOrderItems === false) {
+            return false;
         }
 
         return $xmlOrder->asXML();

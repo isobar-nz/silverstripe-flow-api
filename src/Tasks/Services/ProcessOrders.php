@@ -3,8 +3,8 @@
 
 namespace Isobar\Flow\Tasks\Services;
 
+use Exception;
 use Isobar\Flow\Exception\FlowException;
-use Isobar\Flow\Exception\ValidationException;
 use Isobar\Flow\Services\FlowAPIConnector;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
@@ -38,7 +38,7 @@ class ProcessOrders
         // Send orders to Flow
         try {
             $this->processOrders();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new FlowException($e->getMessage(), $e->getMessage());
         }
 
@@ -46,8 +46,8 @@ class ProcessOrders
     }
 
     /**
-     * @throws \SilverStripe\ORM\ValidationException
      * @throws FlowException
+     * @throws \SilverStripe\ORM\ValidationException
      */
     private function processOrders()
     {
