@@ -4,6 +4,9 @@ namespace Isobar\Flow\Tasks;
 
 use Isobar\Flow\Exception\FlowException;
 use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Core\Environment;
+use SilverStripe\CronTask\Interfaces\CronTask;
+use SilverStripe\Dev\BuildTask;
 use SwipeStripe\Order\Order;
 use SwipeStripe\Order\Status\OrderStatus;
 
@@ -11,7 +14,7 @@ use SwipeStripe\Order\Status\OrderStatus;
  * Class CheckOrdersTask
  * @package App\Flow\Tasks
  */
-class CheckOrdersTask extends BaseFlowTask
+class CheckOrdersTask extends BuildTask implements CronTask
 {
     /**
      * @var string
@@ -34,6 +37,14 @@ class CheckOrdersTask extends BaseFlowTask
     public function getSchedule()
     {
         return "*/30 * * * *"; // checks for orders every 30 mins
+    }
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        Environment::increaseMemoryLimitTo(-1);
+        Environment::increaseTimeLimitTo(100000);
     }
 
     /**

@@ -6,12 +6,15 @@ use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\ProcessProducts;
 use Isobar\Flow\Tasks\Services\StockImport;
 use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Core\Environment;
+use SilverStripe\CronTask\Interfaces\CronTask;
+use SilverStripe\Dev\BuildTask;
 
 /**
  * Class ProcessProductsTask
  * @package App\Flow\Tasks
  */
-class ProcessProductsTask extends BaseFlowTask
+class ProcessProductsTask extends BuildTask implements CronTask
 {
     /**
      * @var string
@@ -34,6 +37,14 @@ class ProcessProductsTask extends BaseFlowTask
     public function getSchedule()
     {
         return "30 1 * * *"; // process after the product import has finished
+    }
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        Environment::increaseMemoryLimitTo(-1);
+        Environment::increaseTimeLimitTo(100000);
     }
 
     /**

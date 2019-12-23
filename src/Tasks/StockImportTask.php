@@ -5,6 +5,9 @@ namespace Isobar\Flow\Tasks;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\StockImport;
 use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Core\Environment;
+use SilverStripe\CronTask\Interfaces\CronTask;
+use SilverStripe\Dev\BuildTask;
 
 /**
  * Class StockImportTask
@@ -14,7 +17,7 @@ use SilverStripe\Control\HTTPRequest;
  * @package App\Flow\Tasks
  * @co-author Lauren Hodgson <lauren.hodgson@littlegiant.co.nz>
  */
-class StockImportTask extends BaseFlowTask
+class StockImportTask extends BuildTask implements CronTask
 {
     /**
      * @var string
@@ -30,6 +33,14 @@ class StockImportTask extends BaseFlowTask
      * @var string
      */
     protected $description = 'Import and process all stock information';
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        Environment::increaseMemoryLimitTo(-1);
+        Environment::increaseTimeLimitTo(100000);
+    }
 
     /**
      * @return string

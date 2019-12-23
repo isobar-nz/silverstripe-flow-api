@@ -6,6 +6,9 @@ use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\PricingImport;
 use Isobar\Flow\Tasks\Services\ProductImport;
 use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Core\Environment;
+use SilverStripe\CronTask\Interfaces\CronTask;
+use SilverStripe\Dev\BuildTask;
 
 /**
  * Class ProductImportTask
@@ -15,7 +18,7 @@ use SilverStripe\Control\HTTPRequest;
  * @package App\Flow\Tasks
  * @co-author Lauren Hodgson <lauren.hodgson@littlegiant.co.nz>
  */
-class ProductImportTask extends BaseFlowTask
+class ProductImportTask extends BuildTask implements CronTask
 {
     /**
      * @var string
@@ -31,6 +34,14 @@ class ProductImportTask extends BaseFlowTask
      * @var string
      */
     protected $description = 'Import all products from flow into temp table';
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        Environment::increaseMemoryLimitTo(-1);
+        Environment::increaseTimeLimitTo(100000);
+    }
 
     /**
      * @return string

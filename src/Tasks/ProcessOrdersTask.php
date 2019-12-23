@@ -6,12 +6,15 @@ use Exception;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Tasks\Services\ProcessOrders;
 use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Core\Environment;
+use SilverStripe\CronTask\Interfaces\CronTask;
+use SilverStripe\Dev\BuildTask;
 
 /**
  * Class ProcessOrdersTask
  * @package App\Flow\Tasks
  */
-class ProcessOrdersTask extends BaseFlowTask
+class ProcessOrdersTask extends BuildTask implements CronTask
 {
     /**
      * @var string
@@ -34,6 +37,14 @@ class ProcessOrdersTask extends BaseFlowTask
     public function getSchedule()
     {
         return "*/10 * * * *"; // process scheduled records every 20 mins
+    }
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        Environment::increaseMemoryLimitTo(-1);
+        Environment::increaseTimeLimitTo(100000);
     }
 
     /**
