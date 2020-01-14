@@ -7,8 +7,10 @@ use Exception;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
+use SilverStripe\Control\Director;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\TextareaField;
 use SilverStripe\i18n\i18n;
 use SilverStripe\Omnipay\Model\Payment;
 use SilverStripe\ORM\DataExtension;
@@ -46,10 +48,16 @@ class OrderExtension extends DataExtension
 //         Add an example to the Flow tab
         $fields->addFieldsToTab('Root.Flow', [
             CheckboxField::create('SentToFlow', 'Order has been sent to flow'),
-            CheckboxField::create('Scheduled', 'Order has been scheduled for import'),
+            CheckboxField::create('Scheduled', 'Order has been scheduled for import')
         ]);
 
-
+        if (!Director::isLive()) {
+            $fields->addFieldsToTab('Root.Flow', [
+                TextareaField::create('XMLData', 'XML')
+                    ->setValue($this->formatDataForFlow())
+                    ->setRows(20)
+            ]);
+        }
     }
 
     /**
@@ -212,9 +220,9 @@ class OrderExtension extends DataExtension
         /** @var OrderCouponAddOn $couponAddOn */
         foreach ($couponAddOns as $couponAddOn) {
             // Coupons are passed in single amounts; there should only be one but provision for multiple
-            $data['CouponCostsName']  = $couponAddOn->Coupon()->Code;
+            $data['CouponCostsName'] = $couponAddOn->Coupon()->Code;
             $data['CouponCostsValue'] = $couponAddOn->getAmount()->getDecimalValue();
-            $data['CouponCostsType']  = $couponAddOn->getTitle();
+            $data['CouponCostsType'] = $couponAddOn->getTitle();
         }
 
         // Order add-ons - shipping
@@ -223,9 +231,9 @@ class OrderExtension extends DataExtension
         $shippingAddOn = $this->owner->getShippingAddOn();
 
         if ($shippingAddOn && $shippingAddOn->exists()) {
-            $data['ShippingCostsName']  = $shippingAddOn->getTitle();
+            $data['ShippingCostsName'] = $shippingAddOn->getTitle();
             $data['ShippingCostsValue'] = $shippingAddOn->getAmount()->getDecimalValue();
-            $data['ShippingCostsType']  = $shippingAddOn->ShippingZone()->getTitle();
+            $data['ShippingCostsType'] = $shippingAddOn->ShippingZone()->getTitle();
         }
 
         // Member functions
@@ -233,18 +241,18 @@ class OrderExtension extends DataExtension
             /** @var Member $member */
             $member = $this->owner->Member();
 
-            $data['CustomerNo']        = $member->ID;
-            $data['CustomerEmail']     = $member->Email;
+            $data['CustomerNo'] = $member->ID;
+            $data['CustomerEmail'] = $member->Email;
             $data['CustomerFirstName'] = $member->FirstName;
-            $data['CustomerLastName']  = $member->Surname;
+            $data['CustomerLastName'] = $member->Surname;
 
             // Shipping
             $data['ShipFirstName'] = $member->FirstName;
-            $data['ShipSurname']   = $member->Surname;
+            $data['ShipSurname'] = $member->Surname;
 
             // Billing
             $data['BillFirstName'] = $member->FirstName;
-            $data['BillSurname']   = $member->Surname;
+            $data['BillSurname'] = $member->Surname;
         }
 
 
@@ -256,10 +264,10 @@ class OrderExtension extends DataExtension
             /** @var Payment $payment */
             foreach ($payments as $payment) {
                 if ($payment->isComplete()) {
-                    $data['PaymentMethod']        = htmlspecialchars($payment->getGatewayTitle());
+                    $data['PaymentMethod'] = htmlspecialchars($payment->getGatewayTitle());
                     $data['PaymentTransactionId'] = htmlspecialchars($payment->TransactionReference);
-                    $data['PaymentAmount']        = $payment->getAmount();
-                    $data['PaymentCurrency']      = $payment->getCurrency();
+                    $data['PaymentAmount'] = $payment->getAmount();
+                    $data['PaymentCurrency'] = $payment->getCurrency();
                 }
             }
 //            'PaymentMethod' => '',
@@ -289,46 +297,45 @@ class OrderExtension extends DataExtension
 
         /** @var OrderItem $orderItem */
         foreach ($orderItems as $orderItem) {
-            // Get SKU or forecast group
-            $variation = ComplexProductVariation::get()->byID($orderItem->PurchasableID);
+            $product = $orderItem->Purchasable();
+            $sku = '';
 
-            if ($variation && $variation->exists()) {
-                // Only add if it has an SKU
-                if ($variation->SKU) {
-                    $validOrderItems = true;
+            // Get the SKU
+            if ($product instanceof ComplexProductVariation) {
+                $sku = $product->SKU;
+            } elseif ($product->ForecastGroup) {
+                $sku = $product->ForecastGroup;
+            }
 
-                    // Order lines
-                    $orderLine = $xmlOrder->addChild('orderLines');
+            if ($sku) {
+                // Order lines
+                $orderLine = $xmlOrder->addChild('orderLines');
 
-                    $orderLine->addChild('ProductCode', $variation->SKU);
+                try {
+                    $orderLine->addChild('ProductCode', $sku);
                     $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
-                    try {
-                        $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
-                    } catch (Exception $e) {
-                        throw new FlowException($e->getMessage(), $e->getCode());
-                    }
-                }
-
-
-            } else {
-                $sku = $orderItem->Purchasable()->ForecastGroup ?: $orderItem->Purchasable()->SKU;
-
-                if ($sku) {
+                    $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
                     $validOrderItems = true;
-
-                    // Order lines
-                    $orderLine = $xmlOrder->addChild('orderLines');
-
-                    try {
-                        $orderLine->addChild('ProductCode', $sku);
-                        $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
-                        $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
-                    } catch (Exception $e) {
-                        throw new FlowException($e->getMessage(), $e->getCode());
-                    }
+                } catch (Exception $e) {
+                    throw new FlowException($e->getMessage(), $e->getCode());
                 }
+            } elseif (method_exists($product, 'getFlowIdentifier')) {
+                // Assume this is an event / ticket
+                $eventLine = $xmlOrder->addChild('EventLines');
+
+                // check if event type is available
+                $identifier = $product->getFlowIdentifier();
+
+                $eventLine->addChild('EventCategory', $identifier);
+                $eventLine->addChild('EventName', $product->Title);
+                $eventLine->addChild('Quantity', (string)$orderItem->Quantity);
+                $eventLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                $validOrderItems = true;
             }
         }
+
+        // Extend here to add additional XML
+        $this->owner->extend('updateFlowOrderXML', $xmlOrder, $validOrderItems);
 
         // If there are no valid entries, return false
         if ($validOrderItems === false) {
