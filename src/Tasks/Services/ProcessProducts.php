@@ -204,7 +204,7 @@ class ProcessProducts
 
         // If the wine product has been published in the past, it should be safe to re-publish
         if ($wineProduct->isPublished()) {
-            $wineProduct->publishSingle();
+            $wineProduct->publishRecursive();
         }
 
 
@@ -250,6 +250,7 @@ class ProcessProducts
                 if (!$wineProductVariation) {
                     $wineProductVariation = $this->createWineVariation($scheduledWineVariation, $wineProductID);
                     $wineProduct->ProductVariations()->add($wineProductVariation);
+                    $wineProductVariation->write();
                 }
             } else {
                 throw new FlowException('Wine product not found');
@@ -281,7 +282,7 @@ class ProcessProducts
                 'ProductID' => $wineProductID
             ]);
 
-            $vintageAttributeID = $vintageAttribute->write();
+            $vintageAttributeID = $vintageAttribute->publishRecursive();
         }
 
         // Do we have a Product Attribute Option with the right title?
@@ -419,7 +420,7 @@ class ProcessProducts
         /** @var WineProduct $product */
         foreach ($productsToPublish as $product) {
             if ($product->isPublished()) {
-                $product->publishSingle();
+                $product->publishRecursive();
             }
         }
 
