@@ -11,10 +11,12 @@ use SilverStripe\Control\Director;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\TextareaField;
+use SilverStripe\Forms\TextField;
 use SilverStripe\i18n\i18n;
 use SilverStripe\Omnipay\Model\Payment;
 use SilverStripe\ORM\DataExtension;
 use SilverStripe\ORM\FieldType\DBBoolean;
+use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\Security\Member;
 use SimpleXMLElement;
@@ -38,15 +40,16 @@ use SwipeStripe\Shipping\ShippingRegion;
 class OrderExtension extends DataExtension
 {
     private static $db = [
-        'SentToFlow' => DBBoolean::class,
-        'Scheduled'  => DBBoolean::class
+        'SentToFlow'    => DBBoolean::class,
+        'Scheduled'     => DBBoolean::class,
+        'FlowReference' => DBVarchar::class
     ];
-
 
     public function updateCMSFields(FieldList $fields)
     {
 //         Add an example to the Flow tab
         $fields->addFieldsToTab('Root.Flow', [
+            TextField::create('FlowReference', 'Flow Order Reference'),
             CheckboxField::create('SentToFlow', 'Order has been sent to flow'),
             CheckboxField::create('Scheduled', 'Order has been scheduled for import')
         ]);
@@ -102,10 +105,10 @@ class OrderExtension extends DataExtension
             } else {
                 // Create scheduled order object
                 $scheduledOrder = ScheduledOrder::create([
-                    'OrderID' => $this->owner->ID,
-                    'Active'  => 1,
-                    'Status'  => FlowStatus::PENDING,
-                    'XmlData' => $xml
+                    'OrderID'   => $this->owner->ID,
+                    'Active'    => 1,
+                    'Status'    => FlowStatus::PENDING,
+                    'XmlData'   => $xml
                 ]);
 
                 try {
@@ -343,5 +346,13 @@ class OrderExtension extends DataExtension
         }
 
         return $xmlOrder->asXML();
+    }
+
+    /**
+     * @param array $fields
+     */
+    public function updateSummaryFields(&$fields)
+    {
+        $fields['FlowReference'] = 'Flow Order Reference';
     }
 }

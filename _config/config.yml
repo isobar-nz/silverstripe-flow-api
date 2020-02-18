@@ -5,3 +5,7 @@ Name: silverstripe-flow-config
 SwipeStripe\Order\Order:
   extensions:
     - Isobar\Flow\Extensions\OrderExtension
+
+SilverStripe\Omnipay\Service\PurchaseService:
+  extensions:
+    - Isobar\Flow\Extensions\PurchaseServiceExtension
