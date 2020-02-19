@@ -45,4 +45,11 @@ class FlowConfig
      * Optional order prefix
      */
     private static $order_prefix;
+
+    /**
+     * @var string
+     *
+     * Optional order prefix
+     */
+    private static $web_debtor_code;
 }

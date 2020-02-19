@@ -38,10 +38,10 @@ class PurchaseServiceExtension extends Extension
      */
     public function onBeforePurchase(array &$gatewayData): void
     {
-        /** @var Order $cart */
         $controller = Controller::curr();
 
         if (method_exists($controller, 'getActiveCart')) {
+            /** @var Order $cart */
             $cart = Controller::curr()->getActiveCart();
 
             if ($cart && $cart->exists()) {

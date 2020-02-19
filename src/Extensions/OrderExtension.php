@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Isobar\Flow\Extensions;
 
 use Exception;
+use Isobar\Flow\Config\FlowConfig;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
@@ -129,6 +130,34 @@ class OrderExtension extends DataExtension
     }
 
     /**
+     * @param array $fields
+     */
+    public function updateSummaryFields(&$fields)
+    {
+        unset($fields['Title']);
+
+        $fields = ['FlowTitle' => 'Order Reference'] + $fields;
+    }
+
+    public function FlowTitle()
+    {
+        return $this->getFlowTitle();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getFlowTitle()
+    {
+        $ref = $this->owner->getField('FlowReference') ?: $this->owner->ID;
+
+        return _t(self::class . '.FlowTitle', '{name} #{id}', [
+            'name' => $this->owner->i18n_singular_name(),
+            'id'   => $ref,
+        ]);
+    }
+
+    /**
      * @return SimpleXMLElement|boolean
      * @throws FlowException
      */
@@ -160,9 +189,9 @@ class OrderExtension extends DataExtension
         // Initial data: all fields are required
         // Fields must be in the correct order
         $data = [
-            'OrderNo'     => $this->owner->ID,
+            'OrderNo'     => $this->owner->FlowReference,
             'OrderDate'   => $this->owner->dbObject('ConfirmationTime')->Format('Y-MM-dd'),
-            'WebDebtorNo' => 'VMNZWEB',
+            'WebDebtorNo' => FlowConfig::config()->get('web_debtor_code'),
             'CustomerNo'  => $this->owner->CustomerEmail,
 
             'SubTotalPrice' => $this->owner->SubTotal()->getDecimalValue(),
@@ -348,11 +377,4 @@ class OrderExtension extends DataExtension
         return $xmlOrder->asXML();
     }
 
-    /**
-     * @param array $fields
-     */
-    public function updateSummaryFields(&$fields)
-    {
-        $fields['FlowReference'] = 'Flow Order Reference';
-    }
 }
