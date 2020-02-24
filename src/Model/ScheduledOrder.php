@@ -43,7 +43,8 @@ class ScheduledOrder extends DataObject
     private static $db = [
         'Status'  => FlowStatus::ENUM,
         'Active'  => DBBoolean::class,
-        'XmlData' => DBText::class
+        'XmlData' => DBText::class,
+        'Logs'    => DBText::class
     ];
 
     private static $has_one = [
@@ -82,6 +83,10 @@ class ScheduledOrder extends DataObject
         $fields->replaceField(
             'XmlData',
             $fields->dataFieldByName('XmlData')->performReadonlyTransformation()
+        );
+        $fields->replaceField(
+            'Logs',
+            $fields->dataFieldByName('Logs')->performReadonlyTransformation()
         );
         $fields->replaceField(
             'OrderID',

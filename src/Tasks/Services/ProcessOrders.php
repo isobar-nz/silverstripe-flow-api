@@ -96,72 +96,62 @@ class ProcessOrders
                     }
                 }
 
-                if ($eventsCount === $items->count()) {
-                    // Some sort of error which we'll want to log
+                $result = [];
+
+                try {
+                    $api = OrderAPIService::singleton();
+
+                    $connector = singleton(FlowAPIConnector::class);
+                    $api->setConnector($connector);
+
+                    $result = $api->order($xmlData);
+                } catch (FlowException $e) {
+                    $scheduledOrder->setField('Status', FlowStatus::FAILED);
+                    $scheduledOrder->setField('Logs', json_encode($result));
+
+                    $this->OrdersFailed++;
+                    throw $e;
+                }
+
+                // Ensure we save the result
+                $scheduledOrder->setField('Logs', json_encode($result));
+
+                if (isset($result['message'])) {
+                    // The expected result is simply a message, make a log note
+
                     $statusUpdateData = [
                         'NotifyCustomer'  => 0,
                         'CustomerVisible' => 0,
-                        'Message'         => 'Events Only',
+                        'Message'         => $result['message'],
                         'Status'          => OrderStatus::COMPLETED
                     ];
 
                     $scheduledOrder->setField('Status', FlowStatus::COMPLETED);
-
                     $this->OrdersSent++;
                 } else {
-                    $result = [];
+                    // Some sort of error which we'll want to log
+                    $statusUpdateData = [
+                        'NotifyCustomer'  => 0,
+                        'CustomerVisible' => 0,
+                        'Message'         => json_encode($result),
+                        'Status'          => OrderStatus::PENDING
+                    ];
 
-                    try {
-                        $api = OrderAPIService::singleton();
+                    // reset the order status to pending to allow it to reprocess at a later time
+                    $scheduledOrder->setField('Status', FlowStatus::PENDING);
 
-                        $connector = singleton(FlowAPIConnector::class);
-                        $api->setConnector($connector);
+                    // Check for duplicate orders
+                    if (isset($result['FlowLogItem'])) {
+                        if (isset($result['FlowLogItem']['Exception'])) {
+                            if ($result['FlowLogItem']['Exception'] == 409) {
+                                $statusUpdateData = [
+                                    'NotifyCustomer'  => 0,
+                                    'CustomerVisible' => 0,
+                                    'Message'         => $result['FlowLogItem']['Description'],
+                                    'Status'          => OrderStatus::COMPLETED
+                                ];
 
-                        $result = $api->order($xmlData);
-                    } catch (FlowException $e) {
-                        $scheduledOrder->setField('Status', FlowStatus::FAILED);
-
-                        $this->OrdersFailed++;
-                        throw $e;
-                    }
-
-                    if (isset($result['message'])) {
-                        // The expected result is simply a message, make a log note
-
-                        $statusUpdateData = [
-                            'NotifyCustomer'  => 0,
-                            'CustomerVisible' => 0,
-                            'Message'         => $result['message'],
-                            'Status'          => OrderStatus::COMPLETED
-                        ];
-
-                        $scheduledOrder->setField('Status', FlowStatus::COMPLETED);
-                        $this->OrdersSent++;
-                    } else {
-                        // Some sort of error which we'll want to log
-                        $statusUpdateData = [
-                            'NotifyCustomer'  => 0,
-                            'CustomerVisible' => 0,
-                            'Message'         => json_encode($result),
-                            'Status'          => OrderStatus::PENDING
-                        ];
-
-                        // reset the order status to pending to allow it to reprocess at a later time
-                        $scheduledOrder->setField('Status', FlowStatus::PENDING);
-
-                        // Check for duplicate orders
-                        if (isset($result['FlowLogItem'])) {
-                            if (isset($result['FlowLogItem']['Exception'])) {
-                                if ($result['FlowLogItem']['Exception'] == 409) {
-                                    $statusUpdateData = [
-                                        'NotifyCustomer'  => 0,
-                                        'CustomerVisible' => 0,
-                                        'Message'         => $result['FlowLogItem']['Description'],
-                                        'Status'          => OrderStatus::COMPLETED
-                                    ];
-
-                                    $scheduledOrder->setField('Status', FlowStatus::COMPLETED);
-                                }
+                                $scheduledOrder->setField('Status', FlowStatus::COMPLETED);
                             }
                         }
                     }
