@@ -9,6 +9,7 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBBoolean;
 use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\ORM\FieldType\DBText;
+use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SwipeStripe\Order\Order;
@@ -42,7 +43,8 @@ class ScheduledOrder extends DataObject
     private static $db = [
         'Status'  => FlowStatus::ENUM,
         'Active'  => DBBoolean::class,
-        'XmlData' => DBText::class
+        'XmlData' => DBText::class,
+        'Logs'    => DBText::class
     ];
 
     private static $has_one = [
@@ -50,10 +52,11 @@ class ScheduledOrder extends DataObject
     ];
 
     private static $summary_fields = [
-        'Order.ID'    => 'Order ID',
-        'Active.Nice' => 'Active',
-        'StatusLabel' => 'Status',
-        'Created'     => 'Created'
+        'Order.ID'            => 'Order ID',
+        'Order.FlowReference' => 'Order Reference',
+        'Active.Nice'         => 'Active',
+        'StatusLabel'         => 'Status',
+        'Created'             => 'Created'
     ];
 
     /**
@@ -80,6 +83,10 @@ class ScheduledOrder extends DataObject
         $fields->replaceField(
             'XmlData',
             $fields->dataFieldByName('XmlData')->performReadonlyTransformation()
+        );
+        $fields->replaceField(
+            'Logs',
+            $fields->dataFieldByName('Logs')->performReadonlyTransformation()
         );
         $fields->replaceField(
             'OrderID',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Isobar\Flow\Extensions;
 
 use Exception;
+use Isobar\Flow\Config\FlowConfig;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
@@ -11,10 +12,12 @@ use SilverStripe\Control\Director;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\TextareaField;
+use SilverStripe\Forms\TextField;
 use SilverStripe\i18n\i18n;
 use SilverStripe\Omnipay\Model\Payment;
 use SilverStripe\ORM\DataExtension;
 use SilverStripe\ORM\FieldType\DBBoolean;
+use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\Security\Member;
 use SimpleXMLElement;
@@ -38,15 +41,16 @@ use SwipeStripe\Shipping\ShippingRegion;
 class OrderExtension extends DataExtension
 {
     private static $db = [
-        'SentToFlow' => DBBoolean::class,
-        'Scheduled'  => DBBoolean::class
+        'SentToFlow'    => DBBoolean::class,
+        'Scheduled'     => DBBoolean::class,
+        'FlowReference' => DBVarchar::class
     ];
-
 
     public function updateCMSFields(FieldList $fields)
     {
 //         Add an example to the Flow tab
         $fields->addFieldsToTab('Root.Flow', [
+            TextField::create('FlowReference', 'Flow Order Reference'),
             CheckboxField::create('SentToFlow', 'Order has been sent to flow'),
             CheckboxField::create('Scheduled', 'Order has been scheduled for import')
         ]);
@@ -102,10 +106,10 @@ class OrderExtension extends DataExtension
             } else {
                 // Create scheduled order object
                 $scheduledOrder = ScheduledOrder::create([
-                    'OrderID' => $this->owner->ID,
-                    'Active'  => 1,
-                    'Status'  => FlowStatus::PENDING,
-                    'XmlData' => $xml
+                    'OrderID'   => $this->owner->ID,
+                    'Active'    => 1,
+                    'Status'    => FlowStatus::PENDING,
+                    'XmlData'   => $xml
                 ]);
 
                 try {
@@ -123,6 +127,34 @@ class OrderExtension extends DataExtension
                 throw new FlowException($e->getMessage(), $e->getCode());
             }
         }
+    }
+
+    /**
+     * @param array $fields
+     */
+    public function updateSummaryFields(&$fields)
+    {
+        unset($fields['Title']);
+
+        $fields = ['FlowTitle' => 'Order Reference'] + $fields;
+    }
+
+    public function FlowTitle()
+    {
+        return $this->getFlowTitle();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getFlowTitle()
+    {
+        $ref = $this->owner->getField('FlowReference') ?: $this->owner->ID;
+
+        return _t(self::class . '.FlowTitle', '{name} #{id}', [
+            'name' => $this->owner->i18n_singular_name(),
+            'id'   => $ref,
+        ]);
     }
 
     /**
@@ -157,9 +189,9 @@ class OrderExtension extends DataExtension
         // Initial data: all fields are required
         // Fields must be in the correct order
         $data = [
-            'OrderNo'     => $this->owner->ID,
+            'OrderNo'     => $this->owner->FlowReference,
             'OrderDate'   => $this->owner->dbObject('ConfirmationTime')->Format('Y-MM-dd'),
-            'WebDebtorNo' => 'VMNZWEB',
+            'WebDebtorNo' => FlowConfig::config()->get('web_debtor_code'),
             'CustomerNo'  => $this->owner->CustomerEmail,
 
             'SubTotalPrice' => $this->owner->SubTotal()->getDecimalValue(),
@@ -344,4 +376,5 @@ class OrderExtension extends DataExtension
 
         return $xmlOrder->asXML();
     }
+
 }
