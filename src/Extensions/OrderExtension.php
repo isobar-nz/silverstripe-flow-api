@@ -296,8 +296,8 @@ class OrderExtension extends DataExtension
             /** @var Payment $payment */
             foreach ($payments as $payment) {
                 if ($payment->isComplete()) {
-                    $data['PaymentMethod'] = htmlspecialchars($payment->getGatewayTitle());
-                    $data['PaymentTransactionId'] = htmlspecialchars($payment->TransactionReference);
+                    $data['PaymentMethod'] = $payment->getGatewayTitle();
+                    $data['PaymentTransactionId'] = $payment->TransactionReference;
                     $data['PaymentAmount'] = $payment->getAmount();
                     $data['PaymentCurrency'] = $payment->getCurrency();
                 }
@@ -311,7 +311,7 @@ class OrderExtension extends DataExtension
 
         // Build up the order
 
-        $xmlOrder = new SimpleXMLElement("<orderHeader/>");
+        $xmlOrder = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><orderHeader/>');
 
         array_walk($data, function (&$value, &$key) use ($xmlOrder) {
             if (is_numeric($value)) {
@@ -319,7 +319,7 @@ class OrderExtension extends DataExtension
                 $value = abs($value);
             }
 
-            $xmlOrder->addChild($key, htmlspecialchars((string)$value));
+            $xmlOrder->{$key} = (string)$value;
         });
 
         // Look through products
@@ -374,7 +374,11 @@ class OrderExtension extends DataExtension
             return false;
         }
 
-        return $xmlOrder->asXML();
+        $xml = $xmlOrder->asXML();
+
+        $xml = html_entity_decode($xml, ENT_NOQUOTES, 'UTF-8');
+
+        return $xml;
     }
 
 }
