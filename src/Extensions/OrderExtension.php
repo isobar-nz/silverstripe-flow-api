@@ -9,6 +9,7 @@ use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
 use SilverStripe\Control\Director;
+use SilverStripe\Core\Convert;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\TextareaField;
@@ -228,7 +229,7 @@ class OrderExtension extends DataExtension
             'ShipPostcode'         => $this->owner->ShippingAddressPostcode,
             'ShipState'            => $shippingAddressRegion,
             'ShipCountry'          => $shippingCountry,
-            'ShipNotes'            => $this->owner->ShippingAddressNotes,
+            'ShipNotes'            => str_replace(["\n","\r", '’', '>', '<'],['','', "'", '', ''], $this->owner->ShippingAddressNotes),
 //
 //            // Billing
             'BillFirstName'        => $this->owner->CustomerName,
@@ -374,11 +375,7 @@ class OrderExtension extends DataExtension
             return false;
         }
 
-        $xml = $xmlOrder->asXML();
-
-        $xml = html_entity_decode($xml, ENT_NOQUOTES, 'UTF-8');
-
-        return $xml;
+        return $xmlOrder->asXML();
     }
 
 }
