@@ -9,6 +9,7 @@ use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
 use SilverStripe\Control\Director;
+use SilverStripe\Core\Convert;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\TextareaField;
@@ -228,7 +229,7 @@ class OrderExtension extends DataExtension
             'ShipPostcode'         => $this->owner->ShippingAddressPostcode,
             'ShipState'            => $shippingAddressRegion,
             'ShipCountry'          => $shippingCountry,
-            'ShipNotes'            => $this->owner->ShippingAddressNotes,
+            'ShipNotes'            => str_replace(["\n","\r", '’', '>', '<'],['','', "'", '', ''], $this->owner->ShippingAddressNotes),
 //
 //            // Billing
             'BillFirstName'        => $this->owner->CustomerName,
@@ -296,8 +297,8 @@ class OrderExtension extends DataExtension
             /** @var Payment $payment */
             foreach ($payments as $payment) {
                 if ($payment->isComplete()) {
-                    $data['PaymentMethod'] = htmlspecialchars($payment->getGatewayTitle());
-                    $data['PaymentTransactionId'] = htmlspecialchars($payment->TransactionReference);
+                    $data['PaymentMethod'] = $payment->getGatewayTitle();
+                    $data['PaymentTransactionId'] = $payment->TransactionReference;
                     $data['PaymentAmount'] = $payment->getAmount();
                     $data['PaymentCurrency'] = $payment->getCurrency();
                 }
@@ -311,7 +312,7 @@ class OrderExtension extends DataExtension
 
         // Build up the order
 
-        $xmlOrder = new SimpleXMLElement("<orderHeader/>");
+        $xmlOrder = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><orderHeader/>');
 
         array_walk($data, function (&$value, &$key) use ($xmlOrder) {
             if (is_numeric($value)) {
@@ -319,7 +320,7 @@ class OrderExtension extends DataExtension
                 $value = abs($value);
             }
 
-            $xmlOrder->addChild($key, htmlspecialchars((string)$value));
+            $xmlOrder->{$key} = (string)$value;
         });
 
         // Look through products
