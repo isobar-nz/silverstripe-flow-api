@@ -177,7 +177,9 @@ class ProcessProducts
             $this->ProductsUpdated++;
         } else {
             // Create a new WineProduct in draft mode
-            $wineProduct = WineProduct::create([
+            $wineProduct = WineProduct::create();
+
+            $wineProduct->update([
                 'Title'         => $scheduledProduct->Description,
                 'ForecastGroup' => $scheduledProduct->ForecastGroup
             ]);
@@ -277,12 +279,15 @@ class ProcessProducts
         if ($vintageAttribute && $vintageAttribute->exists()) {
             $vintageAttributeID = $vintageAttribute->ID;
         } else {
-            $vintageAttribute = ProductAttribute::create([
+            $vintageAttribute = ProductAttribute::create();
+
+            $vintageAttribute->update([
                 'Title'     => $scheduledWineVariation->VariationType,
                 'ProductID' => $wineProductID
             ]);
 
-            $vintageAttributeID = $vintageAttribute->publishRecursive();
+            $vintageAttributeID = $vintageAttribute->write();
+            $vintageAttribute->publishRecursive();
         }
 
         // Do we have a Product Attribute Option with the right title?
@@ -309,7 +314,9 @@ class ProcessProducts
             $productAttributeOptionID = $productAttributeOption->ID;
         } else {
             // Create it
-            $productAttributeOption = ProductAttributeOption::create([
+            $productAttributeOption = ProductAttributeOption::create();
+
+            $productAttributeOption->update([
                 'ClassName'             => ProductAttributeOption::class,
                 'Title'                 => $scheduledWineVariation->Title,
                 'ProductAttributeID'    => $vintageAttribute->ID,
@@ -341,7 +348,9 @@ class ProcessProducts
             }
         } else {
             // We're going to make a new one
-            $wineProductVariation = ComplexProductVariation::create([
+            $wineProductVariation = ComplexProductVariation::create();
+
+            $wineProductVariation->update([
                 'SKU'       => $scheduledWineVariation->SKU,
                 'ProductID' => $wineProductID
             ]);
@@ -350,7 +359,9 @@ class ProcessProducts
             $wineProductVariation->publishSingle();
 
             // Now connect all the options to the attribute and variation
-            $productVariationOptions = ComplexProductVariation_Options::create([
+            $productVariationOptions = ComplexProductVariation_Options::create();
+
+            $productVariationOptions->update([
                 'ComplexProductVariationID' => $wineProductVariationID,
                 'ProductAttributeOptionID'  => $productAttributeOptionID
             ]);
