@@ -107,10 +107,10 @@ class OrderExtension extends DataExtension
             } else {
                 // Create scheduled order object
                 $scheduledOrder = ScheduledOrder::create([
-                    'OrderID'   => $this->owner->ID,
-                    'Active'    => 1,
-                    'Status'    => FlowStatus::PENDING,
-                    'XmlData'   => $xml
+                    'OrderID' => $this->owner->ID,
+                    'Active'  => 1,
+                    'Status'  => FlowStatus::PENDING,
+                    'XmlData' => $xml
                 ]);
 
                 try {
@@ -229,7 +229,7 @@ class OrderExtension extends DataExtension
             'ShipPostcode'         => $this->owner->ShippingAddressPostcode,
             'ShipState'            => $shippingAddressRegion,
             'ShipCountry'          => $shippingCountry,
-            'ShipNotes'            => str_replace(["\n","\r", '’', '>', '<'],['','', "'", '', ''], $this->owner->ShippingAddressNotes),
+            'ShipNotes'            => str_replace(["\n", "\r", '’', '>', '<'], ['', '', "'", '', ''], $this->owner->ShippingAddressNotes),
 //
 //            // Billing
             'BillFirstName'        => $this->owner->CustomerName,
@@ -332,10 +332,26 @@ class OrderExtension extends DataExtension
         foreach ($orderItems as $orderItem) {
             $product = $orderItem->Purchasable();
             $sku = '';
+            $quantity = $orderItem->Quantity;
+            $price = $orderItem->getBasePrice()->getDecimalValue();
 
             // Get the SKU
             if ($product instanceof ComplexProductVariation) {
                 $sku = $product->SKU;
+
+                // Additionally, if this is a Pack, change the quantity to match the number of bottles
+                if ($attribute = $product->ProductAttributeOptions()->filter('ProductAttribute.Title', 'Pack')->first()) {
+                    // Try and get the number of items, as an int
+                    if (is_numeric($attribute->Title)) {
+                        $packSize = (int)$attribute->Title;
+                        // A pack of 6 should pass through 6 bottles
+                        // And the unit price should be for 1 bottle
+                        if ($packSize > 1) {
+                            $quantity = $orderItem->Quantity * $packSize;
+                            $price = $price / $packSize;
+                        }
+                    }
+                }
             } elseif ($product->ForecastGroup) {
                 $sku = $product->ForecastGroup;
             }
@@ -346,8 +362,8 @@ class OrderExtension extends DataExtension
 
                 try {
                     $orderLine->addChild('ProductCode', $sku);
-                    $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
-                    $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                    $orderLine->addChild('Quantity', (string)$quantity);
+                    $orderLine->addChild('Price', (string)$price);
                     $validOrderItems = true;
                 } catch (Exception $e) {
                     throw new FlowException($e->getMessage(), $e->getCode());
@@ -361,8 +377,8 @@ class OrderExtension extends DataExtension
 
                 $eventLine->addChild('EventCategory', $identifier);
                 $eventLine->addChild('EventName', $product->Title);
-                $eventLine->addChild('Quantity', (string)$orderItem->Quantity);
-                $eventLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                $eventLine->addChild('Quantity', (string)$quantity);
+                $eventLine->addChild('Price', (string)$price);
                 $validOrderItems = true;
             }
         }
