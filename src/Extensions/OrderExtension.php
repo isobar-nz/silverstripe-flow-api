@@ -337,7 +337,7 @@ class OrderExtension extends DataExtension
 
             // Get the SKU
             if ($product instanceof ComplexProductVariation) {
-                $sku = $product->SKU;
+                $sku = $product->SKU ? $product->SKU : $product->Product()->ForecastGroup;
 
                 // Additionally, if this is a Pack, change the quantity to match the number of bottles
                 if ($attribute = $product->ProductAttributeOptions()->filter('ProductAttribute.Title', 'Pack')->first()) {
