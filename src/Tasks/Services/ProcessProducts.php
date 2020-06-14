@@ -201,6 +201,14 @@ class ProcessProducts
             $wineProduct->setField('BasePriceCurrency', 'NZD');
         }
 
+        // Process the pack price
+        if ($scheduledProduct->PackPrice > 0) {
+            $moneyFormattedPrice = str_replace('.', '', $scheduledProduct->PackPrice);
+
+            $wineProduct->setField('PackPriceAmount', $moneyFormattedPrice);
+            $wineProduct->setField('PackPriceCurrency', 'NZD');
+        }
+
         // Enough info to write
         $wineProduct->write();
 

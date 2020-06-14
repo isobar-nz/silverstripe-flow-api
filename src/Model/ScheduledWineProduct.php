@@ -18,6 +18,7 @@ use SilverStripe\ORM\FieldType\DBVarchar;
  * @property string $ForecastGroup
  * @property string $Description
  * @property float $BasePrice
+ * @property float $PackPrice
  * @property string $Status
  * @method DataList|\Isobar\Flow\Model\ScheduledWineVariation[] ScheduledVariations()
  */
@@ -38,17 +39,19 @@ class ScheduledWineProduct extends DataObject
 
     private static $db = [
         'ForecastGroup' => DBVarchar::class,
-        'Description' => DBVarchar::class,
-        'BasePrice' => DBDecimal::class,
-        'Status' => FlowStatus::ENUM
+        'Description'   => DBVarchar::class,
+        'BasePrice'     => DBDecimal::class,
+        'PackPrice'     => DBDecimal::class,
+        'Status'        => FlowStatus::ENUM
     ];
 
     private static $summary_fields = [
         'ForecastGroup' => 'Forecast Group',
-        'Description' => 'Description',
-        'BasePrice' => 'Base Price',
-        'StatusLabel' => 'Status',
-        'Created' => 'Created'
+        'Description'   => 'Description',
+        'BasePrice'     => 'Base Price',
+        'PackPrice'     => 'Pack Price',
+        'StatusLabel'   => 'Status',
+        'Created'       => 'Created'
     ];
 
     private static $has_many = [
@@ -62,7 +65,7 @@ class ScheduledWineProduct extends DataObject
         'ForecastGroup' => [
             'Title' => 'Forecast Group'
         ],
-        'Description' => [
+        'Description'   => [
             'Title' => 'Description'
         ]
     ];
