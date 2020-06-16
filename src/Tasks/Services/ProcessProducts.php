@@ -175,13 +175,19 @@ class ProcessProducts
         if ($wineProduct && $wineProduct->exists()) {
             // Updated product
             $this->ProductsUpdated++;
+
+            // Update pack size
+            $wineProduct->update([
+                'PackSize' => $scheduledProduct->PackSize
+            ]);
         } else {
             // Create a new WineProduct in draft mode
             $wineProduct = WineProduct::create();
 
             $wineProduct->update([
                 'Title'         => $scheduledProduct->Description,
-                'ForecastGroup' => $scheduledProduct->ForecastGroup
+                'ForecastGroup' => $scheduledProduct->ForecastGroup,
+                'PackSize'      => $scheduledProduct->PackSize
             ]);
 
             // If we have a parent

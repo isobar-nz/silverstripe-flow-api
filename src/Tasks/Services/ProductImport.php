@@ -140,6 +140,7 @@ class ProductImport
 
             $scheduledProduct = ScheduledWineProduct::create([
                 'ForecastGroup' => $product['forecastGroup'],
+                'PackSize'      => $product['packingSize'],
                 'Description'   => $title
             ]);
 

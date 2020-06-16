@@ -8,6 +8,7 @@ use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDecimal;
 use SilverStripe\ORM\FieldType\DBHTMLText;
+use SilverStripe\ORM\FieldType\DBInt;
 use SilverStripe\ORM\FieldType\DBVarchar;
 
 /**
@@ -19,6 +20,7 @@ use SilverStripe\ORM\FieldType\DBVarchar;
  * @property string $Description
  * @property float $BasePrice
  * @property float $PackPrice
+ * @property int $PackSize
  * @property string $Status
  * @method DataList|\Isobar\Flow\Model\ScheduledWineVariation[] ScheduledVariations()
  */
@@ -42,6 +44,7 @@ class ScheduledWineProduct extends DataObject
         'Description'   => DBVarchar::class,
         'BasePrice'     => DBDecimal::class,
         'PackPrice'     => DBDecimal::class,
+        'PackSize'      => DBInt::class,
         'Status'        => FlowStatus::ENUM
     ];
 
@@ -50,6 +53,7 @@ class ScheduledWineProduct extends DataObject
         'Description'   => 'Description',
         'BasePrice'     => 'Base Price',
         'PackPrice'     => 'Pack Price',
+        'PackSize'      => 'Pack Size',
         'StatusLabel'   => 'Status',
         'Created'       => 'Created'
     ];
