@@ -10,6 +10,7 @@ use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Convert;
+use SilverStripe\Dev\Debug;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\TextareaField;
@@ -332,10 +333,34 @@ class OrderExtension extends DataExtension
         foreach ($orderItems as $orderItem) {
             $product = $orderItem->Purchasable();
             $sku = '';
+            $quantity = $orderItem->Quantity;
+            $price = $orderItem->getBasePrice()->getDecimalValue();
 
             // Get the SKU
             if ($product instanceof ComplexProductVariation) {
-                $sku = $product->SKU;
+                $sku = $product->SKU ? $product->SKU : $product->Product()->ForecastGroup;
+
+//                echo $sku;
+                $option = $product->ProductAttributeOptions()->filter([
+                    'ProductAttribute.Title' => 'Pack'
+                ])->exclude([
+                    'Title' => '1'
+                ])->first();
+
+                // Additionally, if this is a Pack, change the quantity to match the number of bottles
+                if ($option) {
+                    // Try and get the number of items, as an int
+                    if (is_numeric($option->Title)) {
+                        $packSize = (int)$option->Title;
+                        // A pack of 6 should pass through 6 bottles
+                        // And the unit price should be for 1 bottle
+                        if ($packSize > 1) {
+                            $quantity = $orderItem->Quantity * $packSize;
+                            $price = $price / $packSize;
+                        }
+                    }
+                }
+
             } elseif ($product->ForecastGroup) {
                 $sku = $product->ForecastGroup;
             }
@@ -346,8 +371,8 @@ class OrderExtension extends DataExtension
 
                 try {
                     $orderLine->addChild('ProductCode', $sku);
-                    $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
-                    $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                    $orderLine->addChild('Quantity', (string)$quantity);
+                    $orderLine->addChild('Price', (string)$price);
                     $validOrderItems = true;
                 } catch (Exception $e) {
                     throw new FlowException($e->getMessage(), $e->getCode());
