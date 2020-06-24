@@ -187,7 +187,7 @@ class ProcessProducts
             $wineProduct->update([
                 'Title'         => $scheduledProduct->Description,
                 'ForecastGroup' => $scheduledProduct->ForecastGroup,
-                'PackSize'      => $scheduledProduct->PackSize
+                'PackSize'      => $scheduledProduct->PackSize ?: 6
             ]);
 
             // If we have a parent
