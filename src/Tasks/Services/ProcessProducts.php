@@ -201,7 +201,7 @@ class ProcessProducts
 
         // Process the price
         if ($scheduledProduct->BasePrice > 0) {
-            $moneyFormattedPrice = str_replace('.', '', $scheduledProduct->BasePrice);
+            $moneyFormattedPrice = intval(round($scheduledProduct->BasePrice * 100));
 
             $wineProduct->setField('BasePriceAmount', $moneyFormattedPrice);
             $wineProduct->setField('BasePriceCurrency', 'NZD');
@@ -209,7 +209,7 @@ class ProcessProducts
 
         // Process the pack price
         if ($scheduledProduct->PackPrice > 0) {
-            $moneyFormattedPrice = str_replace('.', '', $scheduledProduct->PackPrice);
+            $moneyFormattedPrice = intval(round($scheduledProduct->PackPrice * 100));
 
             $wineProduct->setField('PackPriceAmount', $moneyFormattedPrice);
             $wineProduct->setField('PackPriceCurrency', 'NZD');
