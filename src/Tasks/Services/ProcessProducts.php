@@ -434,7 +434,7 @@ class ProcessProducts
             $completedTask->addError($exception->getMessage());
             $completedTask->write();
 
-            throw new FlowException($e->getMessage(), $e->getCode());
+            throw new FlowException($exception->getMessage(), $exception->getCode());
         }
     }
 
