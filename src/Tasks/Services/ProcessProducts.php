@@ -299,6 +299,10 @@ class ProcessProducts
      */
     private function createProductAttributeOption(ScheduledWineVariation $scheduledWineVariation, $productAttribute)
     {
+        // Yes we are ignoring the pack size option here, but
+        // the wine product will populate these options (and load these
+        // options into the variations) when the admin updates them in the cms.
+
         // get the product attribute option if it exists
         $productAttributeOption = ProductAttributeOption::get()
             ->filter([
