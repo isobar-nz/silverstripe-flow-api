@@ -81,10 +81,6 @@ class ScheduledOrder extends DataObject
             $fields->dataFieldByName('Active')->performReadonlyTransformation()
         );
         $fields->replaceField(
-            'XmlData',
-            $fields->dataFieldByName('XmlData')->performReadonlyTransformation()
-        );
-        $fields->replaceField(
             'Logs',
             $fields->dataFieldByName('Logs')->performReadonlyTransformation()
         );
