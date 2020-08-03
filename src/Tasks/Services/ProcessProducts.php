@@ -4,13 +4,13 @@
 namespace Isobar\Flow\Tasks\Services;
 
 use App\Ecommerce\Product\WineProduct;
+use App\Pages\ShopWinesPage;
+use Exception;
 use Isobar\Flow\Exception\FlowException;
-use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\CompletedTask;
 use Isobar\Flow\Model\ScheduledWineProduct;
 use Isobar\Flow\Model\ScheduledWineVariation;
-use App\Pages\ShopWinesPage;
-use Exception;
+use Isobar\Flow\Services\FlowStatus;
 use SilverStripe\ORM\ValidationException;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation_Options;
@@ -312,14 +312,15 @@ class ProcessProducts
 
         // Format the price modifier amount
         $modifier = $scheduledWineVariation->PriceModifierAmount;
+        $modifierCents = 0;
         if ($modifier > 0) {
-            $modifier = str_replace('.', '', $modifier);
+            $modifierCents = intval(round($modifier * 100));
         }
 
         // check if it already exists then update the price
         if ($productAttributeOption && $productAttributeOption->exists()) {
             $productAttributeOption->setField('SKU', $scheduledWineVariation->SKU);
-            $productAttributeOption->setField('PriceModifierAmount', $modifier);
+            $productAttributeOption->setField('PriceModifierAmount', $modifierCents);
             $productAttributeOption->write();
         } else {
             // If it doesnt exist then create it
@@ -328,7 +329,7 @@ class ProcessProducts
                 'ClassName'             => ProductAttributeOption::class,
                 'Title'                 => $scheduledWineVariation->Title,
                 'ProductAttributeID'    => $productAttribute->ID,
-                'PriceModifierAmount'   => $modifier,
+                'PriceModifierAmount'   => $modifierCents,
                 'PriceModifierCurrency' => 'NZD' // TODO: Use dynamic currency
             ]);
             $productAttributeOption->write();
