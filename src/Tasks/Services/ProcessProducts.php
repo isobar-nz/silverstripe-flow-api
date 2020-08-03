@@ -232,7 +232,7 @@ class ProcessProducts
      * Processes variations
      *
      * @param ScheduledWineVariation $scheduledWineVariation
-     * @param int $wineProductID
+     * @param int                    $wineProductID
      * @throws FlowException
      */
     private function processWineVariation(ScheduledWineVariation $scheduledWineVariation, int $wineProductID)
@@ -244,30 +244,18 @@ class ProcessProducts
             $wineProduct = WineProduct::get()->byID($wineProductID);
 
             if ($wineProduct && $wineProduct->exists()) {
-                // Get the "Vintage" attribute
-                $vintageAttribute = ProductAttribute::get()->filter([
-                    'Title'     => 'Vintage',
-                    'ProductID' => $wineProductID
-                ])->first();
 
-                // Do we have a Product Attribute Option with the right title?
-//                $productAttributeOption = ProductAttributeOption::get()->filter([
-//                    'Title'              => $scheduledWineVariation->Title,
-//                    'ProductAttributeID' => $vintageAttribute->ID
-//                ])->first();
+                // create or get existing product attribute
+                $productAttribute = $this->createProductAttribute($scheduledWineVariation, $wineProduct->ID);
 
+                // create product attribute option if it doesnt exist or update current one
+                $productAttributeOption = $this->createProductAttributeOption($scheduledWineVariation, $productAttribute);
 
-                // Find the variation
-                /** @var ComplexProductVariation $wineProductVariation */
-                $wineProductVariation = $wineProduct->ProductVariations()->filter([
-                    'SKU' => $scheduledWineVariation->SKU
-                ])->first();
+                // create or update product variation options
+                $this->createProductVariationOptions($scheduledWineVariation, $wineProduct, $productAttributeOption);
 
-                if (!$wineProductVariation) {
-                    $wineProductVariation = $this->createWineVariation($scheduledWineVariation, $wineProductID);
-                    $wineProduct->ProductVariations()->add($wineProductVariation);
-                    $wineProductVariation->write();
-                }
+                $this->ProductsAdded++;
+
             } else {
                 throw new FlowException('Wine product not found');
             }
@@ -278,78 +266,94 @@ class ProcessProducts
 
     /**
      * @param ScheduledWineVariation $scheduledWineVariation
-     * @param int $wineProductID
-     * @return ComplexProductVariation
-     * @throws Exception
+     * @param int                    $wineProductID
+     * @return \SilverStripe\ORM\DataObject|ProductAttribute
      */
-    private function createWineVariation(ScheduledWineVariation $scheduledWineVariation, int $wineProductID)
+    private function createProductAttribute(ScheduledWineVariation $scheduledWineVariation, int $wineProductID)
     {
-        // Get the corresponding variation type
-        $vintageAttribute = ProductAttribute::get()->filter([
+        // check if the product attribute exists (variation type)
+        $productAttribute = ProductAttribute::get()->filter([
             'Title'     => $scheduledWineVariation->VariationType,
             'ProductID' => $wineProductID
         ])->first();
 
-        if ($vintageAttribute && $vintageAttribute->exists()) {
-            $vintageAttributeID = $vintageAttribute->ID;
-        } else {
-            $vintageAttribute = ProductAttribute::create();
-
-            $vintageAttribute->update([
+        // if not create the variation type
+        if (!$productAttribute) {
+            // if not create the variation type
+            $productAttribute = ProductAttribute::create();
+            $productAttribute->update([
                 'Title'     => $scheduledWineVariation->VariationType,
                 'ProductID' => $wineProductID
             ]);
-
-            $vintageAttributeID = $vintageAttribute->write();
-            $vintageAttribute->publishRecursive();
+            $productAttribute->write();
+            $productAttribute->publishRecursive();
         }
 
-        // Do we have a Product Attribute Option with the right title?
-        $productAttributeOption = ProductAttributeOption::get()->filter([
-            'Title'              => $scheduledWineVariation->Title,
-            'ProductAttributeID' => $vintageAttributeID
-        ])->first();
+        return $productAttribute;
+    }
 
+    /**
+     * @param ScheduledWineVariation $scheduledWineVariation
+     * @param                        $productAttribute
+     * @return \SilverStripe\ORM\DataObject|ProductAttributeOption
+     */
+    private function createProductAttributeOption(ScheduledWineVariation $scheduledWineVariation, $productAttribute)
+    {
+        // get the product attribute option if it exists
+        $productAttributeOption = ProductAttributeOption::get()
+            ->filter([
+                'Title'              => $scheduledWineVariation->Title,
+                'ProductAttributeID' => $productAttribute->ID
+            ])->first();
 
         // Format the price modifier amount
         $modifier = $scheduledWineVariation->PriceModifierAmount;
-
         if ($modifier > 0) {
             $modifier = str_replace('.', '', $modifier);
         }
 
+        // check if it already exists then update the price
         if ($productAttributeOption && $productAttributeOption->exists()) {
-            // Ensure price is updated
             $productAttributeOption->setField('SKU', $scheduledWineVariation->SKU);
             $productAttributeOption->setField('PriceModifierAmount', $modifier);
-
             $productAttributeOption->write();
-
-            $productAttributeOptionID = $productAttributeOption->ID;
         } else {
-            // Create it
+            // If it doesnt exist then create it
             $productAttributeOption = ProductAttributeOption::create();
-
             $productAttributeOption->update([
                 'ClassName'             => ProductAttributeOption::class,
                 'Title'                 => $scheduledWineVariation->Title,
-                'ProductAttributeID'    => $vintageAttribute->ID,
+                'ProductAttributeID'    => $productAttribute->ID,
                 'PriceModifierAmount'   => $modifier,
                 'PriceModifierCurrency' => 'NZD' // TODO: Use dynamic currency
             ]);
-
-            $productAttributeOptionID = $productAttributeOption->write();
+            $productAttributeOption->write();
         }
 
+        // publish updates
         $productAttributeOption->publishSingle();
+
+        // remove attribute where SKU matches and product attribute is different
+
+        // return product attribute option
+        return $productAttributeOption;
+    }
+
+    /**
+     * @param ScheduledWineVariation $scheduledWineVariation
+     * @param WineProduct            $wineProduct
+     * @param ProductAttributeOption $productAttributeOption
+     */
+    private function createProductVariationOptions(ScheduledWineVariation $scheduledWineVariation, WineProduct $wineProduct, ProductAttributeOption $productAttributeOption)
+    {
 
         // Get the options
         /** @var ComplexProductVariation_Options $variationOptions */
         $variationOptions = ComplexProductVariation_Options::get()
-            ->filter('ProductAttributeOptionID', $productAttributeOptionID)
+            ->filter('ProductAttributeOptionID', $productAttributeOption->ID)
             ->first();
 
-        // if it exists, we need to check the variation
+        // if it exists, we need to check the product variation
         if ($variationOptions && $variationOptions->exists()) {
             $wineProductVariation = $variationOptions->ComplexProductVariation();
 
@@ -361,12 +365,11 @@ class ProcessProducts
                 $wineProductVariation->publishSingle();
             }
         } else {
-            // We're going to make a new one
+            // if doesnt exist create a new one
             $wineProductVariation = ComplexProductVariation::create();
-
             $wineProductVariation->update([
                 'SKU'       => $scheduledWineVariation->SKU,
-                'ProductID' => $wineProductID
+                'ProductID' => $wineProduct->ID
             ]);
 
             $wineProductVariationID = $wineProductVariation->write();
@@ -377,17 +380,34 @@ class ProcessProducts
 
             $productVariationOptions->update([
                 'ComplexProductVariationID' => $wineProductVariationID,
-                'ProductAttributeOptionID'  => $productAttributeOptionID
+                'ProductAttributeOptionID'  => $productAttributeOption->ID
             ]);
 
             // Write
             $productVariationOptions->write();
+
+            $wineProduct->ProductVariations()->add($wineProductVariation);
+            $wineProductVariation->write();
         }
 
+        //remove old duplicate SKUs
+        $productVariationDuplicates = ComplexProductVariation::get()
+            ->filter('SKU', $scheduledWineVariation->SKU)
+            ->sort('"Created" DESC');
 
-        $this->ProductsAdded++;
+        // set count to ignore the most recent variation
+        $count = 1;
 
-        return $wineProductVariation;
+        if ($productVariationDuplicates->count() > 1) {
+            foreach ($productVariationDuplicates as $variation) {
+                // ignore the first SKU as that is the correct record
+                if ($count != 1) {
+                    $this->deleteVariation($variation);
+                }
+                $count++;
+            }
+        }
+
     }
 
     /**
@@ -465,48 +485,58 @@ class ProcessProducts
 
         // loop through current subsystems if not in import data then archive
         $variations = ComplexProductVariation::get()->filter('SKU:not', $scheduledVariationSKUs);
-
         $variationCount = $variations->count();
-
+        // delete variations that aren't in the import
         /** @var ComplexProductVariation $variation */
         foreach ($variations as $variation) {
-            // Remove the Attribute option with this ID
-            $attributeOptions = ComplexProductVariation_Options::get()
-                ->filter('ComplexProductVariationID', $variation->ID);
-
-            /** @var ComplexProductVariation_Options $attributeOption */
-            foreach ($attributeOptions as $attributeOption) {
-                // Get the attribute
-                $option = $attributeOption->ProductAttributeOption();
-
-                // Remove option attached to this attribute
-                if ($option && $option->exists()) {
-                    $option->doUnpublish();
-                    $option->delete();
-                }
-
-                // Remove attribute
-                $attributeOption->delete();
-            }
-
-            // Now remove any that are in the cart
-            $cartItems = OrderItem::get()->filter([
-                'PurchasableClass' => ComplexProductVariation::class,
-                'PurchasableID'    => $variation->ID,
-                'Order.IsCart'     => 1
-            ]);
-
-            /** @var OrderItem $cartItem */
-            foreach ($cartItems as $cartItem) {
-                $cartItem->delete();
-            }
-
-            // Remove this one
-            $variation->doUnpublish();
-            $variation->delete();
+            $this->deleteVariation($variation);
         }
 
         $this->ProductsDeleted += $variationCount;
+
         return true;
     }
+
+    /**
+     * @param $variation
+     */
+    private function deleteVariation($variation)
+    {
+
+        // Remove the Attribute option with this ID
+        $attributeOptions = ComplexProductVariation_Options::get()
+            ->filter('ComplexProductVariationID', $variation->ID);
+
+        /** @var ComplexProductVariation_Options $attributeOption */
+        foreach ($attributeOptions as $attributeOption) {
+            // Get the attribute
+            $option = $attributeOption->ProductAttributeOption();
+
+            // Remove option attached to this attribute
+            if ($option && $option->exists()) {
+                $option->doUnpublish();
+                $option->delete();
+            }
+
+            // Remove attribute
+            $attributeOption->delete();
+        }
+
+        // Now remove any that are in the cart
+        $cartItems = OrderItem::get()->filter([
+            'PurchasableClass' => ComplexProductVariation::class,
+            'PurchasableID'    => $variation->ID,
+            'Order.IsCart'     => 1
+        ]);
+
+        /** @var OrderItem $cartItem */
+        foreach ($cartItems as $cartItem) {
+            $cartItem->delete();
+        }
+
+        // Remove this one
+        $variation->doUnpublish();
+        $variation->delete();
+    }
+
 }
