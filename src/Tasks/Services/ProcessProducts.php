@@ -390,12 +390,14 @@ class ProcessProducts
             $wineProductVariation->write();
         }
 
-        //remove old duplicate SKUs
+        //remove old duplicate SKUs with the same titles
         $productVariationDuplicates = ComplexProductVariation::get()
-            ->filter('SKU', $scheduledWineVariation->SKU)
-            ->sort('"Created" DESC');
+            ->filter([
+                'SKU'                             => $scheduledWineVariation->SKU,
+                'Product.ProductAttributes.Title' => $productAttributeOption->Title,
+            ])->sort('"Created" DESC');
 
-        // set count to ignore the most recent variation
+        // count SKUs
         $count = 1;
 
         if ($productVariationDuplicates->count() > 1) {
