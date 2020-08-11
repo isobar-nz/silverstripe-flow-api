@@ -338,8 +338,6 @@ class ProcessProducts
         // publish updates
         $productAttributeOption->publishSingle();
 
-        // remove attribute where SKU matches and product attribute is different
-
         // return product attribute option
         return $productAttributeOption;
     }
@@ -352,48 +350,59 @@ class ProcessProducts
     private function createProductVariationOptions(ScheduledWineVariation $scheduledWineVariation, WineProduct $wineProduct, ProductAttributeOption $productAttributeOption)
     {
 
-        // Get the options
+        // delete old variations with no options
+        $this->deleteProductVariations($scheduledWineVariation, $wineProduct);
+
+        // check the complex product variation exists
+        $wineProductVariation = ComplexProductVariation::get()
+            ->filter([
+                'SKU'       => $scheduledWineVariation->SKU,
+                'ProductID' => $wineProduct->ID,
+            ])->first();
+
+        // if it doesnt exist then create one
+        if (!$wineProductVariation) {
+            // if the variation option doesnt exist then create one
+            $wineProductVariation = ComplexProductVariation::create();
+            $wineProductVariation->SKU = $scheduledWineVariation->SKU;
+            $wineProductVariation->ProductID = $wineProduct->ID;
+            $wineProductVariation->write();
+            $wineProductVariation->publishSingle();
+        }
+
+        // check the options exist
         /** @var ComplexProductVariation_Options $variationOptions */
         $variationOptions = ComplexProductVariation_Options::get()
-            ->filter('ProductAttributeOptionID', $productAttributeOption->ID)
-            ->first();
+            ->filter([
+                'ProductAttributeOptionID'     => $productAttributeOption->ID,
+                'ProductAttributeOption.Title' => $productAttributeOption->Title,
+                'ComplexProductVariationID'    => $wineProductVariation->ID,
+            ])->first();
+
 
         // if it exists, we need to check the product variation
-        if ($variationOptions && $variationOptions->exists()) {
-            $wineProductVariation = $variationOptions->ComplexProductVariation();
+        if (!$variationOptions) {
+            // Now connect all the options to the attribute and variation
+            $variationOptions = ComplexProductVariation_Options::create();
+            $variationOptions->ProductAttributeOptionID = $productAttributeOption->ID;
+            $variationOptions->ComplexProductVariationID = $wineProductVariation->ID;
+            $variationOptions->write();
+
+        } else {
 
             // Check it has a SKU
+            $wineProductVariation = $variationOptions->ComplexProductVariation();
             /** @noinspection PhpUndefinedFieldInspection */
             if (!$wineProductVariation->SKU) {
                 $wineProductVariation->setField('SKU', $scheduledWineVariation->SKU);
                 $wineProductVariation->write();
                 $wineProductVariation->publishSingle();
             }
-        } else {
-            // if doesnt exist create a new one
-            $wineProductVariation = ComplexProductVariation::create();
-            $wineProductVariation->update([
-                'SKU'       => $scheduledWineVariation->SKU,
-                'ProductID' => $wineProduct->ID
-            ]);
-
-            $wineProductVariationID = $wineProductVariation->write();
-            $wineProductVariation->publishSingle();
-
-            // Now connect all the options to the attribute and variation
-            $productVariationOptions = ComplexProductVariation_Options::create();
-
-            $productVariationOptions->update([
-                'ComplexProductVariationID' => $wineProductVariationID,
-                'ProductAttributeOptionID'  => $productAttributeOption->ID
-            ]);
-
-            // Write
-            $productVariationOptions->write();
-
-            $wineProduct->ProductVariations()->add($wineProductVariation);
-            $wineProductVariation->write();
         }
+
+        // add wine product variation to the wine product
+        $wineProduct->ProductVariations()->add($wineProductVariation);
+        $wineProductVariation->write();
 
         //remove old duplicate SKUs with the same titles
         $productVariationDuplicates = ComplexProductVariation::get()
@@ -414,7 +423,29 @@ class ProcessProducts
                 $count++;
             }
         }
+    }
 
+    /**
+     * @param $productVariationDuplicates
+     * This is to remove the options bug on the live site and won't be needed moving forward
+     */
+    private function deleteProductVariations($scheduledWineVariation, $wineProduct)
+    {
+
+        //then remove old duplicate SKUs with the same titles
+        $productVariationDuplicates = ComplexProductVariation::get()
+            ->filter([
+                'SKU'                             => $scheduledWineVariation->SKU,
+                'ProductID'                       => $wineProduct->ID,
+                'Product.ProductAttributes.Title' => '',
+            ])->sort('"Created" DESC');
+
+        if ($productVariationDuplicates->count() > 1) {
+            foreach ($productVariationDuplicates as $variation) {
+                $this->deleteVariation($variation);
+
+            }
+        }
     }
 
     /**
