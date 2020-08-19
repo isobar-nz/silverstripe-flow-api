@@ -48,7 +48,7 @@ class ProductImportTask extends BuildTask implements CronTask
      */
     public function getSchedule()
     {
-        return "15 1 * * *"; // Import every night
+        return "0 10,14 * * *"; // Import twice daily at 10am and 2pm
     }
 
     /**
