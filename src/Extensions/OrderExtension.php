@@ -231,7 +231,7 @@ class OrderExtension extends DataExtension
             'ShipState'            => $shippingAddressRegion,
             'ShipCountry'          => $shippingCountry,
             'ShipNotes'            => str_replace(["\n","\r", '’', '>', '<'],['','', "'", '', ''], $this->owner->ShippingAddressNotes),
-//
+
 //            // Billing
             'BillFirstName'        => $this->owner->CustomerName,
             'BillSurname'          => '',
@@ -244,8 +244,6 @@ class OrderExtension extends DataExtension
             'BillState'            => $billingAddressRegion,
             'BillCountry'          => $billingCountry,
             'BillNotes'            => $this->owner->BillingAddressNotes,
-
-//            'orderLines' => ''
         ];
 
         // Coupon
@@ -304,16 +302,10 @@ class OrderExtension extends DataExtension
                     $data['PaymentCurrency'] = $payment->getCurrency();
                 }
             }
-//            'PaymentMethod' => '',
-//            'PaymentTransactionId' => '',
-//            'PaymentAmount' => '',
-//            'PaymentCurrency' => '',
-//            'PaymentToken' => '',
         }
 
         // Build up the order
-
-        $xmlOrder = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><orderHeader/>');
+        $xmlOrder = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-16"?><orderHeader/>');
 
         array_walk($data, function (&$value, &$key) use ($xmlOrder) {
             if (is_numeric($value)) {
@@ -340,7 +332,6 @@ class OrderExtension extends DataExtension
             if ($product instanceof ComplexProductVariation) {
                 $sku = $product->SKU ? $product->SKU : $product->Product()->ForecastGroup;
 
-//                echo $sku;
                 $option = $product->ProductAttributeOptions()->filter([
                     'ProductAttribute.Title' => 'Pack'
                 ])->exclude([
