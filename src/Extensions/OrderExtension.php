@@ -305,7 +305,7 @@ class OrderExtension extends DataExtension
         }
 
         // Build up the order
-        $xmlOrder = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-16"?><orderHeader/>');
+        $xmlOrder = new SimpleXMLElement(mb_convert_encoding('<?xml version="1.0" encoding="UTF-16"?><orderHeader/>', 'UTF-16'));
 
         array_walk($data, function (&$value, &$key) use ($xmlOrder) {
             if (is_numeric($value)) {
