@@ -25,22 +25,24 @@ class OrderAPIService implements OrderServiceInterface
     protected $service;
 
     /**
-     * @param null $body
+     * @param string $body
+     * @param string $encoding
      * @return array
      */
-    public function order($body = null)
+    public function order($body = null, $encoding = 'utf-8')
     {
-        return $this->postOrder($body);
+        return $this->postOrder($body, $encoding);
     }
 
     /**
      * @param string $body
+     * @param string $encoding
      * @return array
      */
-    protected function postOrder($body)
+    protected function postOrder($body, $encoding = 'utf-8')
     {
         $url = Environment::getEnv(EnvironmentSettings::ORDERS_URL);
-        $response = $this->getConnector()->getRequest($url, $body);
+        $response = $this->getConnector()->getRequest($url, $body, $encoding);
 
         return $response;
     }

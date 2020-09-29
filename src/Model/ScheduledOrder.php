@@ -2,14 +2,16 @@
 
 namespace Isobar\Flow\Model;
 
-use Isobar\Flow\Services\FlowStatus;
 use App\Traits\ReadOnlyDataObject;
+use Isobar\Flow\Exception\FlowException;
+use Isobar\Flow\Extensions\OrderExtension;
+use Isobar\Flow\Services\FlowStatus;
 use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\TextareaField;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBBoolean;
 use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\ORM\FieldType\DBText;
-use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SwipeStripe\Order\Order;
@@ -18,12 +20,12 @@ use SwipeStripe\Order\Order;
  * Class ScheduledOrder
  *
  * @package App\Flow\Model
- * @author Lauren Hodgson <lauren.hodgson@littlegiant.co.nz>
- * @property string $Status
+ * @author  Lauren Hodgson <lauren.hodgson@littlegiant.co.nz>
+ * @property string  $Status
  * @property boolean $Active
- * @property string $XmlData
- * @property int $OrderID
- * @method Order Order()
+ * @property string  $XmlData
+ * @property int     $OrderID
+ * @method Order|OrderExtension Order()
  */
 class ScheduledOrder extends DataObject
 {
@@ -41,10 +43,9 @@ class ScheduledOrder extends DataObject
     private static $default_sort = 'Created DESC';
 
     private static $db = [
-        'Status'  => FlowStatus::ENUM,
-        'Active'  => DBBoolean::class,
-        'XmlData' => DBText::class,
-        'Logs'    => DBText::class
+        'Status' => FlowStatus::ENUM,
+        'Active' => DBBoolean::class,
+        'Logs'   => DBText::class,
     ];
 
     private static $has_one = [
@@ -89,6 +90,14 @@ class ScheduledOrder extends DataObject
             $fields->dataFieldByName('OrderID')->performReadonlyTransformation()
         );
 
+        $fields->addFieldToTab(
+            'Root.Main',
+            TextareaField::create('XMLData', 'XML')
+                ->setValue(mb_convert_encoding($this->getXmlData(), 'UTF8'))
+                ->setDescription('Note: Internal coding is UTF-16, converted to UTF-8 for CMS preview')
+                ->setRows(20)
+        );
+
 
         return $fields;
     }
@@ -130,5 +139,16 @@ class ScheduledOrder extends DataObject
     public function canEdit($member = null)
     {
         return Permission::check('ADMIN', 'any', $member);
+    }
+
+    /**
+     * Generate XML for this order
+     *
+     * @return bool|string UTF-16 encoded string
+     * @throws FlowException
+     */
+    public function getXmlData()
+    {
+        return $this->Order()->formatDataForFlow();
     }
 }
