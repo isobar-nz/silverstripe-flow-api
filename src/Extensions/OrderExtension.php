@@ -202,6 +202,8 @@ class OrderExtension extends DataExtension
             'TotalPrice'    => $this->owner->Total()->getDecimalValue(),
             'PriceCurrency' => $this->owner->Total()->getCurrencyCode(),
 
+            'PersonalisedNote' => $this->owner->PersonalisedNote ? str_replace(["\n", "\r", '’', '>', '<'], ['', '', "'", '', ''], $this->owner->PersonalisedNote) : '',
+
             'ShippingCostsName'  => '',
             'ShippingCostsValue' => 0.00,
             'ShippingCostsType'  => '',
