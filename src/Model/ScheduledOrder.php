@@ -21,6 +21,7 @@ use SilverStripe\View\HTML;
 use SilverStripe\Forms\HTMLReadonlyField;
 use SilverStripe\Control\Controller;
 
+
 /**
  * Class ScheduledOrder
  *
@@ -168,6 +169,26 @@ class ScheduledOrder extends DataObject
     public function getXmlData()
     {
         return $this->Order()->formatDataForFlow();
+    }
+
+    /**
+     * @param Order $order
+     * @return mixed
+     */
+    public function getOrderItemLink(Order $order)
+    {
+        $controller = OrderAdmin::singleton();
+        $classSegment = str_replace('\\', '-', Order::class);
+        return Controller::join_links(
+            $controller->Link(),
+            $classSegment,
+            'EditForm',
+            'field',
+            $classSegment,
+            'item',
+            $order->ID,
+            'edit'
+        );
     }
 
 }
