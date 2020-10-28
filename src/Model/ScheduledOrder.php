@@ -16,7 +16,10 @@ use SwipeStripe\Order\Order;
 use SilverStripe\Forms\TextareaField;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Extensions\OrderExtension;
-
+use SwipeStripe\Order\OrderAdmin;
+use SilverStripe\View\HTML;
+use SilverStripe\Forms\HTMLReadonlyField;
+use SilverStripe\Control\Controller;
 
 /**
  * Class ScheduledOrder
@@ -77,6 +80,22 @@ class ScheduledOrder extends DataObject
     {
         $fields = parent::getCMSFields();
 
+        $order = $this->Order();
+        if ($order && $order->exists()) {
+            $orderLink = $this->getOrderItemLink($order);
+            $fields->replaceField(
+                'OrderID',
+                HTMLReadonlyField::create(
+                    'OrderLink',
+                    'Order',
+                    HTML::createTag('a', ['href' => $orderLink], "View order {$order->ID}")
+                )
+            );
+        } else {
+            $fields->removeByName('OrderID');
+        }
+
+
         // Make some fields read only
         $fields->replaceField(
             'Active',
@@ -86,17 +105,14 @@ class ScheduledOrder extends DataObject
             'Logs',
             $fields->dataFieldByName('Logs')->performReadonlyTransformation()
         );
-        $fields->replaceField(
-            'OrderID',
-            $fields->dataFieldByName('OrderID')->performReadonlyTransformation()
-        );
 
         $fields->addFieldToTab(
             'Root.Main',
-            TextareaField::create('XMLData', 'XML')
+            TextareaField::create('XMLDataReadonly', 'XML')
                 ->setValue(mb_convert_encoding($this->getXmlData(), 'UTF8'))
                 ->setDescription('Note: Internal coding is UTF-16, converted to UTF-8 for CMS preview')
                 ->setRows(20)
+                ->performReadonlyTransformation()
         );
 
 
