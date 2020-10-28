@@ -385,7 +385,7 @@ class OrderExtension extends DataExtension
             return false;
         }
 
-        return $xmlOrder->asXML();
+        return $xmlOrder->saveXML();
     }
 
 }
