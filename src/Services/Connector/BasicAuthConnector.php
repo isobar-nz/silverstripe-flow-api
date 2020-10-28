@@ -22,19 +22,18 @@ trait BasicAuthConnector
     abstract public function getBasicAuth();
 
     /**
-     * @param string $url
-     * @param null $body
+     * @param        $url
+     * @param null   $body
+     * @param string $encoding
      * @return array
-     * @throws HTTPResponse_Exception
-     * @throws ValidationException
      */
-    public function getRequest($url, $body = null): array
+    public function getRequest($url, $body = null, $encoding = 'utf-8'): array
     {
         $basicAuth = $this->getBasicAuth();
 
         try {
             // Attempt a valid connection
-            return $this->request($url, $basicAuth, $body);
+            return $this->request($url, $basicAuth, $body, $encoding);
         } catch (ClientException $e) {
             $response = new HTTPResponse();
             $response->setBody($e->getResponse()->getBody()->getContents());
@@ -55,9 +54,9 @@ trait BasicAuthConnector
      *
      * @return array
      */
-    protected function request($url, $basicAuth = null, $body = null): array
+    protected function request($url, $basicAuth = null, $body = null, $encoding = 'utf-8'): array
     {
-        $response = $this->rawRequest($url, $basicAuth, $body);
+        $response = $this->rawRequest($url, $basicAuth, $body, $encoding);
         $contents = $response->getBody()->getContents();
 
         $xml = new SimpleXMLElement($contents);
@@ -68,7 +67,7 @@ trait BasicAuthConnector
     }
 
     /**
-     * @param string $basicAuth
+     * @param null $basicAuth
      * @return Client
      */
     protected function getClient($basicAuth = null)
@@ -90,12 +89,13 @@ trait BasicAuthConnector
     }
 
     /**
-     * @param string $url
-     * @param string|null $basicAuth
-     * @param string|null $body
-     * @return ResponseInterface
+     * @param        $url
+     * @param null   $basicAuth
+     * @param null   $body
+     * @param string $encoding
+     * @return mixed
      */
-    protected function rawRequest($url, $basicAuth = null, $body = null)
+    protected function rawRequest($url, $basicAuth = null, $body = null, $encoding = 'utf-8')
     {
         $client = $this->getClient($basicAuth);
         $options = [];
@@ -108,7 +108,7 @@ trait BasicAuthConnector
 
         // If body given, HTTP post
         $options[RequestOptions::HEADERS] = [
-            'Content-Type' => 'application/xml; charset=utf-8',
+            'Content-Type' => "application/xml; charset={$encoding}",
         ];
 
         if (is_array($body)) {

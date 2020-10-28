@@ -13,12 +13,15 @@ use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SwipeStripe\Order\Order;
+use SilverStripe\Forms\TextareaField;
+use Isobar\Flow\Exception\FlowException;
+use Isobar\Flow\Extensions\OrderExtension;
+
 
 /**
  * Class ScheduledOrder
  *
  * @package App\Flow\Model
- * @author Lauren Hodgson <lauren.hodgson@littlegiant.co.nz>
  * @property string $Status
  * @property boolean $Active
  * @property string $XmlData
@@ -43,7 +46,6 @@ class ScheduledOrder extends DataObject
     private static $db = [
         'Status'  => FlowStatus::ENUM,
         'Active'  => DBBoolean::class,
-        'XmlData' => DBText::class,
         'Logs'    => DBText::class
     ];
 
@@ -89,6 +91,15 @@ class ScheduledOrder extends DataObject
             $fields->dataFieldByName('OrderID')->performReadonlyTransformation()
         );
 
+        $fields->addFieldToTab(
+            'Root.Main',
+            TextareaField::create('XMLData', 'XML')
+                ->setValue(mb_convert_encoding($this->getXmlData(), 'UTF8'))
+                ->setDescription('Note: Internal coding is UTF-16, converted to UTF-8 for CMS preview')
+                ->setRows(20)
+        );
+
+
 
         return $fields;
     }
@@ -131,4 +142,16 @@ class ScheduledOrder extends DataObject
     {
         return Permission::check('ADMIN', 'any', $member);
     }
+
+    /**
+     * Generate XML for this order
+     *
+     * @return bool|string UTF-16 encoded string
+     * @throws FlowException
+     */
+    public function getXmlData()
+    {
+        return $this->Order()->formatDataForFlow();
+    }
+
 }
