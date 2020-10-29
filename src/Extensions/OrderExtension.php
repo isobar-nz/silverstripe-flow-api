@@ -7,12 +7,13 @@ use DOMDocument;
 use Exception;
 use Isobar\Flow\Config\FlowConfig;
 use Isobar\Flow\Exception\FlowException;
-use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
+use Isobar\Flow\Services\FlowStatus;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Convert;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\i18n\i18n;
@@ -335,6 +336,8 @@ class OrderExtension extends DataExtension
         foreach ($orderItems as $orderItem) {
             $product = $orderItem->Purchasable();
             $sku = '';
+            $quantity = $orderItem->Quantity;
+            $price = $orderItem->getBasePrice()->getDecimalValue();
 
             // Get the SKU
             if ($product instanceof ComplexProductVariation) {
@@ -349,10 +352,9 @@ class OrderExtension extends DataExtension
 
                 try {
                     $orderLine->appendChild($xmlDocument->createElement('ProductCode', $sku));
-                    $orderLine->appendChild($xmlDocument->createElement('Quantity', (string)$orderItem->Quantity));
-                    $orderLine->appendChild($xmlDocument->createElement('Price', (string)$orderItem->getBasePrice()->getDecimalValue()));
+                    $orderLine->appendChild($xmlDocument->createElement('Quantity', (string)$quantity));
+                    $orderLine->appendChild($xmlDocument->createElement('Price', (string)$price));
                     $xmlOrder->appendChild($orderLine);
-
                     $validOrderItems = true;
                 } catch (Exception $e) {
                     throw new FlowException($e->getMessage(), $e->getCode());
@@ -369,8 +371,6 @@ class OrderExtension extends DataExtension
                 $eventLine->appendChild($xmlDocument->createElement('Quantity', (string)$orderItem->Quantity));
                 $eventLine->appendChild($xmlDocument->createElement('Price', (string)$orderItem->getBasePrice()->getDecimalValue()));
                 $xmlOrder->appendChild($eventLine);
-
-
                 $validOrderItems = true;
             }
         }
@@ -385,7 +385,7 @@ class OrderExtension extends DataExtension
             return false;
         }
 
-        return $xmlOrder->saveXML();
+        return $xmlDocument->saveXML();
     }
 
 }
