@@ -130,7 +130,7 @@ class ScheduledOrder extends DataObject
         parent::onBeforeWrite();
 
         // update the order reference number for flow
-        if($this->isChanged('UpdateOrderNo')) {
+        if($this->isChanged('UpdateOrderNo') && !empty($this->UpdateOrderNo)) {
             $order = $this->Order();
             $order->FlowReference = $this->UpdateOrderNo;
             $order->write();
