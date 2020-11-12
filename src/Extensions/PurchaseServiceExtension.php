@@ -52,7 +52,6 @@ class PurchaseServiceExtension extends Extension
                 // We want to create a sequential number, if possible, but fallback to cart ID
                 /** @var int $max */
                 $max = intval(Order::get()
-                    ->filter(['IsCart' => 0])
                     ->max('FlowReference'));
 
                 if ($max > 0) {
