@@ -10,10 +10,12 @@ use SilverStripe\Control\Controller;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\HTMLReadonlyField;
 use SilverStripe\Forms\TextareaField;
+use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBBoolean;
 use SilverStripe\ORM\FieldType\DBHTMLText;
 use SilverStripe\ORM\FieldType\DBText;
+use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SilverStripe\View\HTML;
@@ -47,9 +49,10 @@ class ScheduledOrder extends DataObject
     private static $default_sort = 'Created DESC';
 
     private static $db = [
-        'Status' => FlowStatus::ENUM,
-        'Active' => DBBoolean::class,
-        'Logs'   => DBText::class,
+        'Status'        => FlowStatus::ENUM,
+        'Active'        => DBBoolean::class,
+        'Logs'          => DBText::class,
+        'UpdateOrderNo' => DBVarchar::class,
     ];
 
     private static $has_one = [
@@ -105,8 +108,9 @@ class ScheduledOrder extends DataObject
             $fields->dataFieldByName('Logs')->performReadonlyTransformation()
         );
 
-        $fields->addFieldToTab(
-            'Root.Main',
+        $fields->addFieldToTab('Root.Main',
+            TextField::create('UpdateOrderNo', 'Update Flow Order No.')
+                ->setDescription('This will update the order number that is being sent to Flow in the XML'),
             TextareaField::create('XMLDataReadonly', 'XML')
                 ->setValue(mb_convert_encoding($this->getXmlData(), 'UTF8'))
                 ->setDescription('Note: Internal coding is UTF-16, converted to UTF-8 for CMS preview')
@@ -116,6 +120,21 @@ class ScheduledOrder extends DataObject
 
 
         return $fields;
+    }
+
+    /**
+     * @throws \SilverStripe\ORM\ValidationException
+     */
+    protected function onBeforeWrite()
+    {
+        parent::onBeforeWrite();
+
+        // update the order reference number for flow
+        if($this->isChanged('UpdateOrderNo')) {
+            $order = $this->Order();
+            $order->FlowReference = $this->UpdateOrderNo;
+            $order->write();
+        }
     }
 
     /**
