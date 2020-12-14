@@ -138,7 +138,8 @@ class ProductImport
         if (!$scheduledProduct) {
             $title = preg_replace('!\s+!', ' ', $product['productDescription']);
 
-            $scheduledProduct = ScheduledWineProduct::create([
+            $scheduledProduct = ScheduledWineProduct::create();
+            $scheduledProduct->update([
                 'ForecastGroup' => $product['forecastGroup'],
                 'PackSize'      => $product['packingSize'],
                 'Description'   => $title

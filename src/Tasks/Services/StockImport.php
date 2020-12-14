@@ -119,20 +119,29 @@ class StockImport
                     $productVariation->setField('OutOfStock', 0);
                 }
 
-                $productVariation->write();
-                $productVariation->publishSingle();
-
-                $wineProduct = $productVariation->Product();
-
-                if ($wineProduct && $wineProduct->exists()) {
-                    // Publish the product too
-                    $wineProduct->write();
-
-                    // If the wine product has been published in the past, it should be safe to re-publish
-                    if ($wineProduct->isPublished()) {
-                        $wineProduct->publishSingle();
+                if ($productVariation->isChanged()) {
+                    $productVariation->write();
+                    if ($productVariation->isPublished()) {
+                        $productVariation->publishSingle();
                     }
                 }
+
+                // @todo check this is safe to remove
+
+//                $productVariation->write();
+//                $productVariation->publishSingle();
+//
+//                $wineProduct = $productVariation->Product();
+//
+//                if ($wineProduct && $wineProduct->exists()) {
+//                    // Publish the product too
+//                    $wineProduct->write();
+//
+//                    // If the wine product has been published in the past, it should be safe to re-publish
+//                    if ($wineProduct->isPublished()) {
+//                        $wineProduct->publishSingle();
+//                    }
+//                }
             }
         }
     }

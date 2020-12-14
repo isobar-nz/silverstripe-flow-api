@@ -168,6 +168,7 @@ class PricingImport
                 $diff = floatval($pricing['currentSellingPriceUnit']) - $productBasePrice;
 
                 // Calculate the price modifier - must be saved without decimal place
+                // @todo fix + unit test
                 $moneyFormattedPrice = str_replace('.', '', $diff);
 
                 $scheduledVariation->setField('PriceModifierAmount', $moneyFormattedPrice);

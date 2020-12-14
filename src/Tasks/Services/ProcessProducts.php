@@ -201,6 +201,7 @@ class ProcessProducts
 
         // Process the price
         if ($scheduledProduct->BasePrice > 0) {
+            // @todo fix + unit test
             $moneyFormattedPrice = str_replace('.', '', $scheduledProduct->BasePrice);
 
             $wineProduct->setField('BasePriceAmount', $moneyFormattedPrice);
@@ -209,6 +210,7 @@ class ProcessProducts
 
         // Process the pack price
         if ($scheduledProduct->PackPrice > 0) {
+            // @todo fix + unit test
             $moneyFormattedPrice = str_replace('.', '', $scheduledProduct->PackPrice);
 
             $wineProduct->setField('PackPriceAmount', $moneyFormattedPrice);
@@ -216,6 +218,7 @@ class ProcessProducts
         }
 
         // Enough info to write
+        // @todo only run if isChanged()
         $wineProduct->write();
 
         // If the wine product has been published in the past, it should be safe to re-publish
@@ -300,6 +303,8 @@ class ProcessProducts
                 'ProductID' => $wineProductID
             ]);
 
+            // @todo if isChanged && isPublished()
+
             $vintageAttributeID = $vintageAttribute->write();
             $vintageAttribute->publishRecursive();
         }
@@ -315,6 +320,7 @@ class ProcessProducts
         $modifier = $scheduledWineVariation->PriceModifierAmount;
 
         if ($modifier > 0) {
+            // @todo fix
             $modifier = str_replace('.', '', $modifier);
         }
 
@@ -323,6 +329,7 @@ class ProcessProducts
             $productAttributeOption->setField('SKU', $scheduledWineVariation->SKU);
             $productAttributeOption->setField('PriceModifierAmount', $modifier);
 
+            // @todo move out of the loop, put inside the if() statement along with publish()
             $productAttributeOption->write();
 
             $productAttributeOptionID = $productAttributeOption->ID;
@@ -338,9 +345,11 @@ class ProcessProducts
                 'PriceModifierCurrency' => 'NZD' // TODO: Use dynamic currency
             ]);
 
+            // @todo same as above
             $productAttributeOptionID = $productAttributeOption->write();
         }
 
+        // @todo only publish if changed
         $productAttributeOption->publishSingle();
 
         // Get the options
@@ -357,6 +366,8 @@ class ProcessProducts
             /** @noinspection PhpUndefinedFieldInspection */
             if (!$wineProductVariation->SKU) {
                 $wineProductVariation->setField('SKU', $scheduledWineVariation->SKU);
+
+                // @todo only write / publish if changed
                 $wineProductVariation->write();
                 $wineProductVariation->publishSingle();
             }
@@ -419,6 +430,10 @@ class ProcessProducts
     /**
      * @return bool
      * Deletes all the products that don't exist in the imported data table (ScheduledProduct)
+     *
+     * @todo - Check if this method is
+     *        - 1 safe to keep / fix
+     *        - 2 needed
      */
     private function deleteOldProducts()
     {
@@ -444,6 +459,7 @@ class ProcessProducts
 
         /** @var WineProduct $product */
         foreach ($productsToPublish as $product) {
+            // @todo maybe comment this out for now, until we figure out if it's necessary
             if ($product->isPublished()) {
                 $product->publishRecursive();
             }
