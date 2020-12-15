@@ -219,7 +219,9 @@ class ProcessProducts
 
         // Enough info to write
         // @todo only run if isChanged()
-        $wineProduct->write();
+        if ($wineProduct->isChanged()) {
+            $wineProduct->write();
+        }
 
         // If the wine product has been published in the past, it should be safe to re-publish
         if ($wineProduct->isPublished()) {
@@ -303,10 +305,13 @@ class ProcessProducts
                 'ProductID' => $wineProductID
             ]);
 
-            // @todo if isChanged && isPublished()
-
-            $vintageAttributeID = $vintageAttribute->write();
-            $vintageAttribute->publishRecursive();
+            // added checks to write if it is changed and publish if it is published
+            if ($vintageAttribute->isChanged()) {
+                $vintageAttributeID = $vintageAttribute->write();
+                if ($vintageAttribute->isPublished()) {
+                    $vintageAttribute->publishRecursive();
+                }
+            }
         }
 
         // Do we have a Product Attribute Option with the right title?
@@ -328,15 +333,9 @@ class ProcessProducts
             // Ensure price is updated
             $productAttributeOption->setField('SKU', $scheduledWineVariation->SKU);
             $productAttributeOption->setField('PriceModifierAmount', $modifier);
-
-            // @todo move out of the loop, put inside the if() statement along with publish()
-            $productAttributeOption->write();
-
-            $productAttributeOptionID = $productAttributeOption->ID;
         } else {
             // Create it
             $productAttributeOption = ProductAttributeOption::create();
-
             $productAttributeOption->update([
                 'ClassName'             => ProductAttributeOption::class,
                 'Title'                 => $scheduledWineVariation->Title,
@@ -344,18 +343,21 @@ class ProcessProducts
                 'PriceModifierAmount'   => $modifier,
                 'PriceModifierCurrency' => 'NZD' // TODO: Use dynamic currency
             ]);
-
-            // @todo same as above
-            $productAttributeOptionID = $productAttributeOption->write();
         }
 
-        // @todo only publish if changed
-        $productAttributeOption->publishSingle();
+        // only update if product attribute is changed
+        // and only publish if it is already published
+        if ($productAttributeOption->isChanged()) {
+            $productAttributeOption->write();
+            if ($productAttributeOption->isPublished()) {
+                $productAttributeOption->publishSingle();
+            }
+        }
 
         // Get the options
         /** @var ComplexProductVariation_Options $variationOptions */
         $variationOptions = ComplexProductVariation_Options::get()
-            ->filter('ProductAttributeOptionID', $productAttributeOptionID)
+            ->filter('ProductAttributeOptionID', $productAttributeOption->ID)
             ->first();
 
         // if it exists, we need to check the variation
@@ -367,31 +369,40 @@ class ProcessProducts
             if (!$wineProductVariation->SKU) {
                 $wineProductVariation->setField('SKU', $scheduledWineVariation->SKU);
 
-                // @todo only write / publish if changed
-                $wineProductVariation->write();
-                $wineProductVariation->publishSingle();
+                // only write if the wine product variation has changed
+                // only publish if the wine product variation is already published
+                if ($wineProductVariation->isChanged()) {
+                    $wineProductVariation->write();
+                    if ($wineProductVariation->isPublished()) {
+                        $wineProductVariation->publishSingle();
+                    }
+                }
             }
         } else {
             // We're going to make a new one
             $wineProductVariation = ComplexProductVariation::create();
-
             $wineProductVariation->update([
                 'SKU'       => $scheduledWineVariation->SKU,
                 'ProductID' => $wineProductID
             ]);
 
-            $wineProductVariationID = $wineProductVariation->write();
-            $wineProductVariation->publishSingle();
+            // only write if the wine product variation has changed
+            // only publish if the wine product variation is already published
+            if ($wineProductVariation->isChanged()) {
+                $wineProductVariation->write();
+                if ($wineProductVariation->isPublished()) {
+                    $wineProductVariation->publishSingle();
+                }
+            }
 
             // Now connect all the options to the attribute and variation
             $productVariationOptions = ComplexProductVariation_Options::create();
-
             $productVariationOptions->update([
-                'ComplexProductVariationID' => $wineProductVariationID,
-                'ProductAttributeOptionID'  => $productAttributeOptionID
+                'ComplexProductVariationID' => $wineProductVariation->ID,
+                'ProductAttributeOptionID'  => $productAttributeOption->ID
             ]);
 
-            // Write
+            // Write if changed
             $productVariationOptions->write();
         }
 

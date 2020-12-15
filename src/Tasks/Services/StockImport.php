@@ -125,23 +125,6 @@ class StockImport
                         $productVariation->publishSingle();
                     }
                 }
-
-                // @todo check this is safe to remove
-
-//                $productVariation->write();
-//                $productVariation->publishSingle();
-//
-//                $wineProduct = $productVariation->Product();
-//
-//                if ($wineProduct && $wineProduct->exists()) {
-//                    // Publish the product too
-//                    $wineProduct->write();
-//
-//                    // If the wine product has been published in the past, it should be safe to re-publish
-//                    if ($wineProduct->isPublished()) {
-//                        $wineProduct->publishSingle();
-//                    }
-//                }
             }
         }
     }

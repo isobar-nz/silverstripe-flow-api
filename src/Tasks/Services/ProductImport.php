@@ -148,31 +148,24 @@ class ProductImport
             $scheduledProduct->write();
         }
 
+        $updateScheduledWineVariation = [
+            'Title'         => $product['packingSize'],
+            'SKU'           => $product['productCode'],
+            'ForecastGroup' => $product['forecastGroup'],
+            'VariationType' => 'Pack'
+        ];
+
         // Check to see if this is a non-vintage option
         if ($product['vintage'] != 'NVIN') {
-
-            // Import variations
-            $scheduledVariation = ScheduledWineVariation::create([
-                'Title'         => $product['vintage'],
-                'SKU'           => $product['productCode'],
-                'ForecastGroup' => $product['forecastGroup'],
-                'VariationType' => 'Vintage'
-
-            ]);
-        } else {
-            // Use the packing size instead
-            $scheduledVariation = ScheduledWineVariation::create([
-                'Title'         => $product['packingSize'],
-                'SKU'           => $product['productCode'],
-                'ForecastGroup' => $product['forecastGroup'],
-                'VariationType' => 'Pack'
-            ]);
+            $updateScheduledWineVariation['Title'] = $product['vintage'];
+            $updateScheduledWineVariation['VariationType'] = 'Vintage';
         }
 
+        $scheduledVariation = ScheduledWineVariation::create();
+        $scheduledVariation->update($updateScheduledWineVariation);
         $scheduledVariation->write();
 
         $scheduledProduct->ScheduledVariations()->add($scheduledVariation);
-
         $scheduledProduct->write();
     }
 }
