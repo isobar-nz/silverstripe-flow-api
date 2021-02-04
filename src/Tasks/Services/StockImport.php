@@ -3,12 +3,16 @@
 
 namespace Isobar\Flow\Tasks\Services;
 
+use BadMethodCallException;
 use Exception;
 use Isobar\Flow\Config\FlowConfig;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowAPIConnector;
 use Isobar\Flow\Services\Product\StockAPIService;
 use SilverStripe\Control\Director;
+use SilverStripe\ORM\DataObject;
+use SilverStripe\ORM\ValidationException;
+use SilverStripe\Versioned\ChangeSet;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 
 /**
@@ -20,8 +24,32 @@ class StockImport
     protected $threshold;
 
     /**
+     * @var ChangeSet
+     */
+    protected $changeSet = null;
+
+    /**
+     * Publish / update a record
+     *
+     * @param DataObject $record
+     * @throws ValidationException
+     */
+    protected function publish(DataObject $record)
+    {
+        if (empty($this->changeSet)) {
+            throw new BadMethodCallException("runProcessData not called");
+        }
+        if ($record->isChanged(null, DataObject::CHANGE_VALUE)) {
+            $record->write();
+        }
+        $this->changeSet->addObject($record);
+    }
+
+    /**
      * Imports data from Flow XML feed
+     *
      * @throws FlowException
+     * @throws ValidationException
      */
     public function runImport()
     {
@@ -31,9 +59,13 @@ class StockImport
 
         // import PIMS data to temp table
         try {
+            $this->changeSet = ChangeSet::create();
             $this->importData();
         } catch (Exception $e) {
             throw new FlowException($e->getMessage(), $e->getCode());
+        } finally {
+            $this->changeSet->publish();
+            $this->changeSet = null;
         }
 
         if (Director::is_cli()) {
@@ -119,12 +151,7 @@ class StockImport
                     $productVariation->setField('OutOfStock', 0);
                 }
 
-                if ($productVariation->isChanged()) {
-                    $productVariation->write();
-                    if ($productVariation->isPublished()) {
-                        $productVariation->publishSingle();
-                    }
-                }
+                $this->publish($productVariation);
             }
         }
     }

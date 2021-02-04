@@ -56,7 +56,7 @@ class ProcessProducts
         if (empty($this->changeSet)) {
             throw new BadMethodCallException("runProcessData not called");
         }
-        if ($record->isChanged()) {
+        if ($record->isChanged(null, DataObject::CHANGE_VALUE)) {
             $record->write();
         }
         $this->changeSet->addObject($record);
