@@ -4,13 +4,13 @@
 namespace Isobar\Flow\Tasks\Services;
 
 use App\Ecommerce\Product\WineProduct;
+use App\Pages\ShopWinesPage;
+use Exception;
 use Isobar\Flow\Exception\FlowException;
-use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\CompletedTask;
 use Isobar\Flow\Model\ScheduledWineProduct;
 use Isobar\Flow\Model\ScheduledWineVariation;
-use App\Pages\ShopWinesPage;
-use Exception;
+use Isobar\Flow\Services\FlowStatus;
 use SilverStripe\ORM\ValidationException;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation_Options;
@@ -201,20 +201,16 @@ class ProcessProducts
 
         // Process the price
         if ($scheduledProduct->BasePrice > 0) {
-            // @todo fix + unit test
-            $moneyFormattedPrice = str_replace('.', '', $scheduledProduct->BasePrice);
-
-            $wineProduct->setField('BasePriceAmount', $moneyFormattedPrice);
-            $wineProduct->setField('BasePriceCurrency', 'NZD');
+            $wineProduct
+                ->BasePrice
+                ->setFromDollars($scheduledProduct->BasePrice, 'NZD');
         }
 
         // Process the pack price
         if ($scheduledProduct->PackPrice > 0) {
-            // @todo fix + unit test
-            $moneyFormattedPrice = str_replace('.', '', $scheduledProduct->PackPrice);
-
-            $wineProduct->setField('PackPriceAmount', $moneyFormattedPrice);
-            $wineProduct->setField('PackPriceCurrency', 'NZD');
+            $wineProduct
+                ->PackPrice
+                ->setFromDollars($scheduledProduct->PackPrice, 'NZD');
         }
 
         // Enough info to write
@@ -237,7 +233,7 @@ class ProcessProducts
      * Processes variations
      *
      * @param ScheduledWineVariation $scheduledWineVariation
-     * @param int $wineProductID
+     * @param int                    $wineProductID
      * @throws FlowException
      */
     private function processWineVariation(ScheduledWineVariation $scheduledWineVariation, int $wineProductID)
@@ -283,7 +279,7 @@ class ProcessProducts
 
     /**
      * @param ScheduledWineVariation $scheduledWineVariation
-     * @param int $wineProductID
+     * @param int                    $wineProductID
      * @return ComplexProductVariation
      * @throws Exception
      */
@@ -315,35 +311,27 @@ class ProcessProducts
         }
 
         // Do we have a Product Attribute Option with the right title?
+        /** @var ProductAttributeOption $productAttributeOption */
         $productAttributeOption = ProductAttributeOption::get()->filter([
             'Title'              => $scheduledWineVariation->Title,
             'ProductAttributeID' => $vintageAttributeID
         ])->first();
 
-
-        // Format the price modifier amount
-        $modifier = $scheduledWineVariation->PriceModifierAmount;
-
-        if ($modifier > 0) {
-            // @todo fix
-            $modifier = str_replace('.', '', $modifier);
-        }
-
-        if ($productAttributeOption && $productAttributeOption->exists()) {
-            // Ensure price is updated
-            $productAttributeOption->setField('SKU', $scheduledWineVariation->SKU);
-            $productAttributeOption->setField('PriceModifierAmount', $modifier);
-        } else {
-            // Create it
+        // Bootstrap attribute option if not exists
+        if (!$productAttributeOption) {
             $productAttributeOption = ProductAttributeOption::create();
             $productAttributeOption->update([
-                'ClassName'             => ProductAttributeOption::class,
-                'Title'                 => $scheduledWineVariation->Title,
-                'ProductAttributeID'    => $vintageAttribute->ID,
-                'PriceModifierAmount'   => $modifier,
-                'PriceModifierCurrency' => 'NZD' // TODO: Use dynamic currency
+                'Title'              => $scheduledWineVariation->Title,
+                'ProductAttributeID' => $vintageAttribute->ID,
             ]);
         }
+
+        // Update option with new field values
+        $productAttributeOption->setField('SKU', $scheduledWineVariation->SKU);
+        $productAttributeOption->PriceModifier->setFromDollars(
+            $scheduledWineVariation->PriceModifierAmount,
+            'NZD'
+        );
 
         // only update if product attribute is changed
         // and only publish if it is already published
@@ -452,28 +440,19 @@ class ProcessProducts
         $scheduledProductIDs = ScheduledWineProduct::get()
             ->column('ForecastGroup');
 
-        // loop through current subsystems if not in import data then archive
-        $productsToDelete = WineProduct::get()->filter('ForecastGroup:not', $scheduledProductIDs);
+        // Safe guard $scheduledProductIDs accidentally being empty; This would delete the whole DB by accident
+        if (empty($scheduledProductIDs)) {
+            return true;
+        }
 
+        // loop through current subsystems if not in import data then archive
+        $productsToDelete = WineProduct::get()->exclude('ForecastGroup', $scheduledProductIDs);
         if ($productsToDelete->count() > 0) {
             /** @var WineProduct $product */
             foreach ($productsToDelete as $product) {
-                // Un-publish
-//                $product->doUnpublish();
+                $product->doUnpublish();
             }
-
             $this->ProductsDeleted += $productsToDelete->count();
-        }
-
-        // Publish products to clean up
-        $productsToPublish = WineProduct::get()->filter('ForecastGroup', $scheduledProductIDs);
-
-        /** @var WineProduct $product */
-        foreach ($productsToPublish as $product) {
-            // @todo maybe comment this out for now, until we figure out if it's necessary
-            if ($product->isPublished()) {
-                $product->publishRecursive();
-            }
         }
 
         return true;
