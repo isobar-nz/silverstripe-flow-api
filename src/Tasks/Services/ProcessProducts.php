@@ -231,46 +231,32 @@ class ProcessProducts
      *
      * @param ScheduledWineVariation $scheduledWineVariation
      * @param int                    $wineProductID
-     * @throws FlowException
+     * @throws FlowException|ValidationException
      */
     private function processWineVariation(ScheduledWineVariation $scheduledWineVariation, int $wineProductID)
     {
         // We should only process the variation if we have a valid wine product ID
-        if ($wineProductID > 0) {
-            // Process the variation - first find the wine product
-            /** @var WineProduct $wineProduct */
-            $wineProduct = WineProduct::get()->byID($wineProductID);
-
-            if ($wineProduct && $wineProduct->exists()) {
-                // Get the "Vintage" attribute
-                $vintageAttribute = ProductAttribute::get()->filter([
-                    'Title'     => 'Vintage',
-                    'ProductID' => $wineProductID
-                ])->first();
-
-                // Do we have a Product Attribute Option with the right title?
-//                $productAttributeOption = ProductAttributeOption::get()->filter([
-//                    'Title'              => $scheduledWineVariation->Title,
-//                    'ProductAttributeID' => $vintageAttribute->ID
-//                ])->first();
-
-
-                // Find the variation
-                /** @var ComplexProductVariation $wineProductVariation */
-                $wineProductVariation = $wineProduct->ProductVariations()->filter([
-                    'SKU' => $scheduledWineVariation->SKU
-                ])->first();
-
-                if (!$wineProductVariation) {
-                    $wineProductVariation = $this->createWineVariation($scheduledWineVariation, $wineProductID);
-                    $wineProduct->ProductVariations()->add($wineProductVariation);
-                    $wineProductVariation->write();
-                }
-            } else {
-                throw new FlowException('Wine product not found');
-            }
-        } else {
+        if (!$wineProductID) {
             throw new FlowException('Missing product ID');
+        }
+
+        // Process the variation - first find the wine product
+        /** @var WineProduct $wineProduct */
+        $wineProduct = WineProduct::get()->byID($wineProductID);
+        if (!$wineProduct) {
+            throw new FlowException('Wine product not found');
+        }
+
+        // Find the variation
+        /** @var ComplexProductVariation $wineProductVariation */
+        $wineProductVariation = $wineProduct->ProductVariations()->filter([
+            'SKU' => $scheduledWineVariation->SKU
+        ])->first();
+
+        if (!$wineProductVariation) {
+            $wineProductVariation = $this->createWineVariation($scheduledWineVariation, $wineProductID);
+            $wineProduct->ProductVariations()->add($wineProductVariation);
+            $wineProductVariation->write();
         }
     }
 
@@ -288,30 +274,22 @@ class ProcessProducts
             'ProductID' => $wineProductID
         ])->first();
 
-        if ($vintageAttribute && $vintageAttribute->exists()) {
-            $vintageAttributeID = $vintageAttribute->ID;
-        } else {
+        // Create vintage if not exists
+        if (!$vintageAttribute) {
             $vintageAttribute = ProductAttribute::create();
-
             $vintageAttribute->update([
                 'Title'     => $scheduledWineVariation->VariationType,
                 'ProductID' => $wineProductID
             ]);
-
-            // added checks to write if it is changed and publish if it is published
-            if ($vintageAttribute->isChanged()) {
-                $vintageAttributeID = $vintageAttribute->write();
-                if ($vintageAttribute->isPublished()) {
-                    $vintageAttribute->publishRecursive();
-                }
-            }
+            $vintageAttribute->write();
+            $vintageAttribute->publishRecursive();
         }
 
         // Do we have a Product Attribute Option with the right title?
         /** @var ProductAttributeOption $productAttributeOption */
         $productAttributeOption = ProductAttributeOption::get()->filter([
             'Title'              => $scheduledWineVariation->Title,
-            'ProductAttributeID' => $vintageAttributeID
+            'ProductAttributeID' => $vintageAttribute->ID
         ])->first();
 
         // Bootstrap attribute option if not exists
@@ -346,7 +324,7 @@ class ProcessProducts
             ->first();
 
         // if it exists, we need to check the variation
-        if ($variationOptions && $variationOptions->exists()) {
+        if ($variationOptions) {
             $wineProductVariation = $variationOptions->ComplexProductVariation();
 
             // Check it has a SKU
