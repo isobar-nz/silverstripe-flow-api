@@ -214,14 +214,11 @@ class ProcessProducts
         }
 
         // Enough info to write
-        // @todo only run if isChanged()
         if ($wineProduct->isChanged()) {
             $wineProduct->write();
-        }
-
-        // If the wine product has been published in the past, it should be safe to re-publish
-        if ($wineProduct->isPublished()) {
-            $wineProduct->publishRecursive();
+            if ($wineProduct->isPublished()) {
+                $wineProduct->publishRecursive();
+            }
         }
 
 
