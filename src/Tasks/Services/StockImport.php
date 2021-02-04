@@ -37,7 +37,7 @@ class StockImport
     protected function publish(DataObject $record)
     {
         if (empty($this->changeSet)) {
-            throw new BadMethodCallException("runProcessData not called");
+            throw new BadMethodCallException("runImport not called");
         }
         if ($record->isChanged(null, DataObject::CHANGE_VALUE)) {
             $record->write();
