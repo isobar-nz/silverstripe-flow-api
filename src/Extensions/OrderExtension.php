@@ -201,7 +201,7 @@ class OrderExtension extends DataExtension
             'SubTotalPrice' => $this->owner->SubTotal()->getDecimalValue(),
             'TotalPrice'    => $this->owner->Total()->getDecimalValue(),
             'PriceCurrency' => $this->owner->Total()->getCurrencyCode(),
-            
+
             'ShippingCostsName'  => '',
             'ShippingCostsValue' => 0.00,
             'ShippingCostsType'  => '',
@@ -313,7 +313,7 @@ class OrderExtension extends DataExtension
         $xmlOrder = $xmlDocument->createElement('orderHeader');
 
         array_walk($data, function (&$value, &$key) use ($xmlOrder, $xmlDocument) {
-            if (is_numeric($value)) {
+            if (is_numeric($value) && $value < 0) {
                 // Ensure negative values are parsed correctly
                 $value = abs($value);
             }
