@@ -316,7 +316,7 @@ class OrderExtension extends DataExtension
         $xmlOrder = $xmlDocument->createElement('orderHeader');
 
         array_walk($data, function (&$value, &$key) use ($xmlOrder, $xmlDocument) {
-            if (is_numeric($value)) {
+            if (is_numeric($value) && $value < 0) {
                 // Ensure negative values are parsed correctly
                 $value = abs($value);
             }
