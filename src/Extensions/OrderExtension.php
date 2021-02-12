@@ -3,15 +3,17 @@ declare(strict_types=1);
 
 namespace Isobar\Flow\Extensions;
 
+use DOMDocument;
 use Exception;
 use Isobar\Flow\Config\FlowConfig;
 use Isobar\Flow\Exception\FlowException;
-use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\ScheduledOrder;
+use Isobar\Flow\Services\FlowStatus;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Convert;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\i18n\i18n;
@@ -59,7 +61,8 @@ class OrderExtension extends DataExtension
         if (!Director::isLive()) {
             $fields->addFieldsToTab('Root.Flow', [
                 TextareaField::create('XMLData', 'XML')
-                    ->setValue($this->formatDataForFlow())
+                    ->setValue(mb_convert_encoding($this->formatDataForFlow(), 'UTF8'))
+                    ->setDescription('Note: Internal coding is UTF-16, converted to UTF-8 for CMS preview')
                     ->setRows(20)
             ]);
         }
@@ -106,11 +109,11 @@ class OrderExtension extends DataExtension
                 $this->owner->setField('Status', OrderStatus::COMPLETED);
             } else {
                 // Create scheduled order object
-                $scheduledOrder = ScheduledOrder::create([
-                    'OrderID'   => $this->owner->ID,
-                    'Active'    => 1,
-                    'Status'    => FlowStatus::PENDING,
-                    'XmlData'   => $xml
+                $scheduledOrder = ScheduledOrder::create();
+                $scheduledOrder->update([
+                    'OrderID' => $this->owner->ID,
+                    'Active'  => 1,
+                    'Status'  => FlowStatus::PENDING
                 ]);
 
                 try {
@@ -229,9 +232,9 @@ class OrderExtension extends DataExtension
             'ShipPostcode'         => $this->owner->ShippingAddressPostcode,
             'ShipState'            => $shippingAddressRegion,
             'ShipCountry'          => $shippingCountry,
-            'ShipNotes'            => str_replace(["\n","\r", '’', '>', '<'],['','', "'", '', ''], $this->owner->ShippingAddressNotes),
-//
-//            // Billing
+            'ShipNotes'            => str_replace(["\n", "\r", '’', '>', '<'], ['', '', "'", '', ''], $this->owner->ShippingAddressNotes),
+
+            // Billing
             'BillFirstName'        => $this->owner->CustomerName,
             'BillSurname'          => '',
             'BillCompany'          => '',
@@ -303,24 +306,25 @@ class OrderExtension extends DataExtension
                     $data['PaymentCurrency'] = $payment->getCurrency();
                 }
             }
-//            'PaymentMethod' => '',
-//            'PaymentTransactionId' => '',
-//            'PaymentAmount' => '',
-//            'PaymentCurrency' => '',
-//            'PaymentToken' => '',
         }
 
         // Build up the order
 
-        $xmlOrder = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><orderHeader/>');
+        $xmlDocument = new DOMDocument();
+        $xmlDocument->version = '1.0';
+        $xmlDocument->encoding = 'UTF-16';
+        $xmlOrder = $xmlDocument->createElement('orderHeader');
 
-        array_walk($data, function (&$value, &$key) use ($xmlOrder) {
+        array_walk($data, function (&$value, &$key) use ($xmlOrder, $xmlDocument) {
             if (is_numeric($value)) {
                 // Ensure negative values are parsed correctly
                 $value = abs($value);
             }
 
-            $xmlOrder->{$key} = (string)$value;
+            $orderPropertyValue = $xmlDocument->createTextNode((string)$value);
+            $orderProperty = $xmlDocument->createElement($key);
+            $orderProperty->appendChild($orderPropertyValue);
+            $xmlOrder->appendChild($orderProperty);
         });
 
         // Look through products
@@ -332,6 +336,8 @@ class OrderExtension extends DataExtension
         foreach ($orderItems as $orderItem) {
             $product = $orderItem->Purchasable();
             $sku = '';
+            $quantity = $orderItem->Quantity;
+            $price = $orderItem->getBasePrice()->getDecimalValue();
 
             // Get the SKU
             if ($product instanceof ComplexProductVariation) {
@@ -342,30 +348,34 @@ class OrderExtension extends DataExtension
 
             if ($sku) {
                 // Order lines
-                $orderLine = $xmlOrder->addChild('orderLines');
+                $orderLine = $xmlDocument->createElement('orderLines');
 
                 try {
-                    $orderLine->addChild('ProductCode', $sku);
-                    $orderLine->addChild('Quantity', (string)$orderItem->Quantity);
-                    $orderLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                    $orderLine->appendChild($xmlDocument->createElement('ProductCode', $sku));
+                    $orderLine->appendChild($xmlDocument->createElement('Quantity', (string)$quantity));
+                    $orderLine->appendChild($xmlDocument->createElement('Price', (string)$price));
+                    $xmlOrder->appendChild($orderLine);
                     $validOrderItems = true;
                 } catch (Exception $e) {
                     throw new FlowException($e->getMessage(), $e->getCode());
                 }
             } elseif (method_exists($product, 'getFlowIdentifier')) {
                 // Assume this is an event / ticket
-                $eventLine = $xmlOrder->addChild('EventLines');
+                $eventLine = $xmlDocument->createElement('EventLines');
 
                 // check if event type is available
                 $identifier = $product->getFlowIdentifier();
 
-                $eventLine->addChild('EventCategory', $identifier);
-                $eventLine->addChild('EventName', $product->Title);
-                $eventLine->addChild('Quantity', (string)$orderItem->Quantity);
-                $eventLine->addChild('Price', (string)$orderItem->getBasePrice()->getDecimalValue());
+                $eventLine->appendChild($xmlDocument->createElement('EventCategory', $identifier));
+                $eventLine->appendChild($xmlDocument->createElement('EventName', $product->Title));
+                $eventLine->appendChild($xmlDocument->createElement('Quantity', (string)$orderItem->Quantity));
+                $eventLine->appendChild($xmlDocument->createElement('Price', (string)$orderItem->getBasePrice()->getDecimalValue()));
+                $xmlOrder->appendChild($eventLine);
                 $validOrderItems = true;
             }
         }
+
+        $xmlDocument->appendChild($xmlOrder);
 
         // Extend here to add additional XML
         $this->owner->extend('updateFlowOrderXML', $xmlOrder, $validOrderItems);
@@ -375,7 +385,7 @@ class OrderExtension extends DataExtension
             return false;
         }
 
-        return $xmlOrder->asXML();
+        return $xmlDocument->saveXML();
     }
 
 }

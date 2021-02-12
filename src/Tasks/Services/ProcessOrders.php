@@ -74,10 +74,10 @@ class ProcessOrders
 
                 $scheduledOrder->setField('Status', FlowStatus::PROCESSING);
 
-                $xmlData = $scheduledOrder->XmlData;
+                $xmlData = $scheduledOrder->getXmlData();
 
                 // If no data, fail
-                if (empty($xmlData)) {
+                if ($xmlData === false) {
                     $scheduledOrder->setField('Status', FlowStatus::FAILED);
                     $scheduledOrder->write();
 
@@ -104,7 +104,7 @@ class ProcessOrders
                     $connector = singleton(FlowAPIConnector::class);
                     $api->setConnector($connector);
 
-                    $result = $api->order($xmlData);
+                    $result = $api->order($xmlData, 'UTF-16');
                 } catch (FlowException $e) {
                     $scheduledOrder->setField('Status', FlowStatus::FAILED);
                     $scheduledOrder->setField('Logs', json_encode($result));

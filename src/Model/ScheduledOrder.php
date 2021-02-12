@@ -13,12 +13,19 @@ use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SwipeStripe\Order\Order;
+use SilverStripe\Forms\TextareaField;
+use Isobar\Flow\Exception\FlowException;
+use Isobar\Flow\Extensions\OrderExtension;
+use SwipeStripe\Order\OrderAdmin;
+use SilverStripe\View\HTML;
+use SilverStripe\Forms\HTMLReadonlyField;
+use SilverStripe\Control\Controller;
+
 
 /**
  * Class ScheduledOrder
  *
  * @package App\Flow\Model
- * @author Lauren Hodgson <lauren.hodgson@littlegiant.co.nz>
  * @property string $Status
  * @property boolean $Active
  * @property string $XmlData
@@ -43,7 +50,6 @@ class ScheduledOrder extends DataObject
     private static $db = [
         'Status'  => FlowStatus::ENUM,
         'Active'  => DBBoolean::class,
-        'XmlData' => DBText::class,
         'Logs'    => DBText::class
     ];
 
@@ -75,6 +81,22 @@ class ScheduledOrder extends DataObject
     {
         $fields = parent::getCMSFields();
 
+        $order = $this->Order();
+        if ($order && $order->exists()) {
+            $orderLink = $this->getOrderItemLink($order);
+            $fields->replaceField(
+                'OrderID',
+                HTMLReadonlyField::create(
+                    'OrderLink',
+                    'Order',
+                    HTML::createTag('a', ['href' => $orderLink], "View order {$order->ID}")
+                )
+            );
+        } else {
+            $fields->removeByName('OrderID');
+        }
+
+
         // Make some fields read only
         $fields->replaceField(
             'Active',
@@ -84,10 +106,16 @@ class ScheduledOrder extends DataObject
             'Logs',
             $fields->dataFieldByName('Logs')->performReadonlyTransformation()
         );
-        $fields->replaceField(
-            'OrderID',
-            $fields->dataFieldByName('OrderID')->performReadonlyTransformation()
+
+        $fields->addFieldToTab(
+            'Root.Main',
+            TextareaField::create('XMLDataReadonly', 'XML')
+                ->setValue(mb_convert_encoding($this->getXmlData(), 'UTF8'))
+                ->setDescription('Note: Internal coding is UTF-16, converted to UTF-8 for CMS preview')
+                ->setRows(20)
+                ->performReadonlyTransformation()
         );
+
 
 
         return $fields;
@@ -131,4 +159,36 @@ class ScheduledOrder extends DataObject
     {
         return Permission::check('ADMIN', 'any', $member);
     }
+
+    /**
+     * Generate XML for this order
+     *
+     * @return bool|string UTF-16 encoded string
+     * @throws FlowException
+     */
+    public function getXmlData()
+    {
+        return $this->Order()->formatDataForFlow();
+    }
+
+    /**
+     * @param Order $order
+     * @return mixed
+     */
+    public function getOrderItemLink(Order $order)
+    {
+        $controller = OrderAdmin::singleton();
+        $classSegment = str_replace('\\', '-', Order::class);
+        return Controller::join_links(
+            $controller->Link(),
+            $classSegment,
+            'EditForm',
+            'field',
+            $classSegment,
+            'item',
+            $order->ID,
+            'edit'
+        );
+    }
+
 }
