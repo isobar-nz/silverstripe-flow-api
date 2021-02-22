@@ -39,7 +39,7 @@ class ProcessOrders
         try {
             $this->processOrders();
         } catch (Exception $e) {
-            throw new FlowException($e->getMessage(), $e->getMessage());
+            throw new FlowException($e->getMessage(), $e->getCode(), $e);
         }
 
         echo "\nCompleted processing orders\n\n";
