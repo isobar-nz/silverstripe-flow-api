@@ -5,16 +5,13 @@ namespace Isobar\Flow\Tasks\Services;
 
 use App\Ecommerce\Product\WineProduct;
 use App\Pages\ShopWinesPage;
-use BadMethodCallException;
 use Exception;
 use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Model\CompletedTask;
 use Isobar\Flow\Model\ScheduledWineProduct;
 use Isobar\Flow\Model\ScheduledWineVariation;
 use Isobar\Flow\Services\FlowStatus;
-use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\ValidationException;
-use SilverStripe\Versioned\ChangeSet;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation_Options;
 use SwipeStripe\Common\Product\ComplexProduct\ProductAttribute;
@@ -32,6 +29,8 @@ use SwipeStripe\Order\OrderItem\OrderItem;
  */
 class ProcessProducts
 {
+    use ChangeSetPublishTrait;
+
     public $ProductsFailed = 0;
 
     public $ProductsUpdated = 0;
@@ -39,32 +38,6 @@ class ProcessProducts
     public $ProductsAdded = 0;
 
     public $ProductsDeleted = 0;
-
-    /**
-     * @var ChangeSet
-     */
-    protected $changeSet = null;
-
-    /**
-     * Publish / update a record
-     *
-     * @param DataObject $record
-     * @throws ValidationException
-     */
-    protected function publish(DataObject $record)
-    {
-        if (empty($this->changeSet)) {
-            throw new BadMethodCallException("runProcessData not called");
-        }
-        if ($record->isChanged(null, DataObject::CHANGE_VALUE)) {
-            $record->write();
-        }
-        // Ensure changeset is saved when adding the first item
-        if (!$this->changeSet->isInDB()) {
-            $this->changeSet->write();
-        }
-        $this->changeSet->addObject($record);
-    }
 
     /**
      * Processes all orders from scheduled list
@@ -78,16 +51,12 @@ class ProcessProducts
 
         // Process scheduled products and import
         try {
-            $this->changeSet = ChangeSet::create();
+            $this->initChangeSet();
             $this->processProducts();
         } catch (ValidationException $e) {
             throw new FlowException($e->getMessage(), $e->getCode());
         } finally {
-            // If we have saved at least one record, publish changeset
-            if ($this->changeSet->isInDB()) {
-                $this->changeSet->publish();
-            }
-            $this->changeSet = null;
+            $this->finishChangeSet();
         }
 
         echo "\nCompleted processing products\n\n";
