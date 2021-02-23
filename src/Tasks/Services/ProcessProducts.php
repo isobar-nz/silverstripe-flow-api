@@ -59,6 +59,10 @@ class ProcessProducts
         if ($record->isChanged(null, DataObject::CHANGE_VALUE)) {
             $record->write();
         }
+        // Ensure changeset is saved when adding the first item
+        if (!$this->changeSet->isInDB()) {
+            $this->changeSet->write();
+        }
         $this->changeSet->addObject($record);
     }
 
@@ -79,7 +83,10 @@ class ProcessProducts
         } catch (ValidationException $e) {
             throw new FlowException($e->getMessage(), $e->getCode());
         } finally {
-            $this->changeSet->publish();
+            // If we have saved at least one record, publish changeset
+            if ($this->changeSet->isInDB()) {
+                $this->changeSet->publish();
+            }
             $this->changeSet = null;
         }
 
