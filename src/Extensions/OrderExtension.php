@@ -201,7 +201,7 @@ class OrderExtension extends DataExtension
             'SubTotalPrice' => $this->owner->SubTotal()->getDecimalValue(),
             'TotalPrice'    => $this->owner->Total()->getDecimalValue(),
             'PriceCurrency' => $this->owner->Total()->getCurrencyCode(),
-
+            
             'ShippingCostsName'  => '',
             'ShippingCostsValue' => 0.00,
             'ShippingCostsType'  => '',
@@ -317,7 +317,7 @@ class OrderExtension extends DataExtension
                 // Ensure negative values are parsed correctly
                 $value = abs($value);
             }
-            $orderPropertyValue = $xmlDocument->createCDATASection((string)$value);
+            $orderPropertyValue = $xmlDocument->createTextNode((string)$value);
             $orderProperty = $xmlDocument->createElement($key);
             $orderProperty->appendChild($orderPropertyValue);
             $xmlOrder->appendChild($orderProperty);
