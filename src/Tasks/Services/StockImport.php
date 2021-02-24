@@ -9,6 +9,7 @@ use Isobar\Flow\Exception\FlowException;
 use Isobar\Flow\Services\FlowAPIConnector;
 use Isobar\Flow\Services\Product\StockAPIService;
 use SilverStripe\Control\Director;
+use SilverStripe\ORM\ValidationException;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 
 /**
@@ -17,11 +18,15 @@ use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
  */
 class StockImport
 {
+    use ChangeSetPublishTrait;
+
     protected $threshold;
 
     /**
      * Imports data from Flow XML feed
+     *
      * @throws FlowException
+     * @throws ValidationException
      */
     public function runImport()
     {
@@ -31,9 +36,12 @@ class StockImport
 
         // import PIMS data to temp table
         try {
+            $this->initChangeSet();
             $this->importData();
         } catch (Exception $e) {
             throw new FlowException($e->getMessage(), $e->getCode());
+        } finally {
+            $this->finishChangeSet();;
         }
 
         if (Director::is_cli()) {
@@ -119,20 +127,7 @@ class StockImport
                     $productVariation->setField('OutOfStock', 0);
                 }
 
-                $productVariation->write();
-                $productVariation->publishSingle();
-
-                $wineProduct = $productVariation->Product();
-
-                if ($wineProduct && $wineProduct->exists()) {
-                    // Publish the product too
-                    $wineProduct->write();
-
-                    // If the wine product has been published in the past, it should be safe to re-publish
-                    if ($wineProduct->isPublished()) {
-                        $wineProduct->publishSingle();
-                    }
-                }
+                $this->publish($productVariation);
             }
         }
     }

@@ -2,8 +2,8 @@
 
 namespace Isobar\Flow\Model;
 
-use Isobar\Flow\Services\FlowStatus;
 use App\Traits\ReadOnlyDataObject;
+use Isobar\Flow\Services\FlowStatus;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDecimal;
 use SilverStripe\ORM\FieldType\DBHTMLText;
@@ -13,14 +13,15 @@ use SilverStripe\ORM\FieldType\DBVarchar;
  * Class ScheduledWineVariation
  *
  * @package App\Flow\Model
- * @author Lauren Hodgson <lauren.hodgson@littlegiant.co.nz>
+ * @author  Lauren Hodgson <lauren.hodgson@littlegiant.co.nz>
  * @property string $SKU
  * @property string $ForecastGroup
- * @property float $PriceModifierAmount
+ * @property float  $PriceModifierAmount
  * @property string $Status
  * @property string $Title
- * @property int $ScheduledProductID
- * @method \Isobar\Flow\Model\ScheduledWineProduct ScheduledProduct()
+ * @property int    $ScheduledProductID
+ * @property string $VariationType
+ * @method ScheduledWineProduct ScheduledProduct()
  */
 class ScheduledWineVariation extends DataObject
 {
@@ -43,8 +44,7 @@ class ScheduledWineVariation extends DataObject
         'PriceModifierAmount' => DBDecimal::class,
         'Status'              => FlowStatus::ENUM,
         'Title'               => DBVarchar::class,
-        'VariationType'       => DBVarchar::class
-
+        'VariationType'       => DBVarchar::class,
     ];
 
     private static $summary_fields = [
