@@ -20,7 +20,7 @@
         }
     ],
     "require": {
-        "swipestripe/swipestripe": "5.0.x-dev",
+        "swipestripe/swipestripe": "^5.1",
         "silverstripe/framework": "^4"
     },
     "require-dev": {
