@@ -4,10 +4,11 @@ declare(strict_types=1);
 namespace Isobar\Flow\Extensions;
 
 use Exception;
+use SilverStripe\ORM\DB;
+use SwipeStripe\Order\Order;
+use SilverStripe\Core\Extension;
 use Isobar\Flow\Config\FlowConfig;
 use SilverStripe\Control\Controller;
-use SilverStripe\Core\Extension;
-use SwipeStripe\Order\Order;
 
 /**
  * Class PaymentGatewayControllerExtension
@@ -49,10 +50,7 @@ class PurchaseServiceExtension extends Extension
                 // Generate and store the Flow reference
                 $suffix = FlowConfig::config()->get('order_suffix');
 
-                // We want to create a sequential number, if possible, but fallback to cart ID
-                /** @var int $max */
-                $max = intval(Order::get()
-                    ->max('FlowReference'));
+                $max = DB::query('SELECT MAX(FlowReference + 0) FROM "SwipeStripe_Order"')->value();
 
                 if ($max > 0) {
                     $max++;
