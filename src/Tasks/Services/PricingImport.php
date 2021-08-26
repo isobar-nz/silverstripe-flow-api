@@ -130,6 +130,19 @@ class PricingImport
                 $scheduledProduct->write();
             }
 
+            // Default pack price to calculate variation modifiers
+            $productPackPrice = $scheduledProduct->getField('PackPrice');
+
+            // Does it have pricing? If not, set the base
+            if ($productPackPrice < 1) {
+                // Set it to whatever this one is
+                $productPackPrice = $pricing['retailPriceCase'];
+
+                $scheduledProduct->setField('PackPrice', $productPackPrice);
+
+                $scheduledProduct->write();
+            }
+
             // Get the variation
             $scheduledVariation = ScheduledWineVariation::get()->filter([
                 'SKU' => $pricing['productCode']
@@ -152,12 +165,8 @@ class PricingImport
                 $scheduledVariation->setField('PriceModifierAmount', 0);
             } else {
                 // Calculate the difference
-                $diff = floatval($pricing['currentSellingPriceUnit']) - $productBasePrice;
-
-                // Calculate the price modifier - must be saved without decimal place
-                $moneyFormattedPrice = str_replace('.', '', $diff);
-
-                $scheduledVariation->setField('PriceModifierAmount', $moneyFormattedPrice);
+                $modifier = floatval($pricing['currentSellingPriceUnit']) - $productBasePrice;
+                $scheduledVariation->setField('PriceModifierAmount', $modifier);
             }
 
             $scheduledVariation->write();

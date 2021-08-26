@@ -4,13 +4,13 @@
 namespace Isobar\Flow\Tasks\Services;
 
 use App\Ecommerce\Product\WineProduct;
+use App\Pages\ShopWinesPage;
+use Exception;
 use Isobar\Flow\Exception\FlowException;
-use Isobar\Flow\Services\FlowStatus;
 use Isobar\Flow\Model\CompletedTask;
 use Isobar\Flow\Model\ScheduledWineProduct;
 use Isobar\Flow\Model\ScheduledWineVariation;
-use App\Pages\ShopWinesPage;
-use Exception;
+use Isobar\Flow\Services\FlowStatus;
 use SilverStripe\ORM\ValidationException;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation_Options;
@@ -29,6 +29,8 @@ use SwipeStripe\Order\OrderItem\OrderItem;
  */
 class ProcessProducts
 {
+    use ChangeSetPublishTrait;
+
     public $ProductsFailed = 0;
 
     public $ProductsUpdated = 0;
@@ -39,7 +41,9 @@ class ProcessProducts
 
     /**
      * Processes all orders from scheduled list
+     *
      * @throws FlowException
+     * @throws ValidationException
      */
     public function runProcessData()
     {
@@ -47,17 +51,20 @@ class ProcessProducts
 
         // Process scheduled products and import
         try {
+            $this->initChangeSet();
             $this->processProducts();
         } catch (ValidationException $e) {
             throw new FlowException($e->getMessage(), $e->getCode());
+        } finally {
+            $this->finishChangeSet();
         }
 
         echo "\nCompleted processing products\n\n";
     }
 
     /**
-     * @throws ValidationException
      * @throws FlowException
+     * @throws ValidationException
      */
     private function processProducts()
     {
@@ -84,11 +91,9 @@ class ProcessProducts
 
                 echo "Processing product " . $scheduledProduct->ForecastGroup . PHP_EOL;
 
-                $wineProductID = 0;
-
                 // Try to process - catch any exceptions
                 try {
-                    $wineProductID = $this->processWineProduct($scheduledProduct);
+                    $wineProduct = $this->processWineProduct($scheduledProduct);
 
                     $scheduledProduct->setField('Status', FlowStatus::COMPLETED);
                 } catch (Exception $e) {
@@ -115,7 +120,7 @@ class ProcessProducts
 
                         // Try to process - catch any exceptions
                         try {
-                            $this->processWineVariation($scheduledVariation, $wineProductID);
+                            $this->processWineVariation($scheduledVariation, $wineProduct->ID);
 
                             $scheduledVariation->setField('Status', FlowStatus::COMPLETED);
                         } catch (Exception $e) {
@@ -134,12 +139,10 @@ class ProcessProducts
                 }
             }
 
-            if ($completedTask) {
-                $completedTask->ProductsUpdated = ($completedTask->ProductsUpdated + $this->ProductsUpdated);
-                $completedTask->ProductsFailed = ($completedTask->ProductsFailed + $this->ProductsFailed);
-                $completedTask->ProductsAdded = ($completedTask->ProductsAdded + $this->ProductsAdded);
-                $completedTask->write();
-            }
+            $completedTask->ProductsUpdated = ($completedTask->ProductsUpdated + $this->ProductsUpdated);
+            $completedTask->ProductsFailed = ($completedTask->ProductsFailed + $this->ProductsFailed);
+            $completedTask->ProductsAdded = ($completedTask->ProductsAdded + $this->ProductsAdded);
+            $completedTask->write();
         }
 
         // Check for errors
@@ -159,33 +162,35 @@ class ProcessProducts
      * Converts a scheduled product into a real WineProduct
      *
      * @param ScheduledWineProduct $scheduledProduct
-     * @return int
+     * @return null|WineProduct The imported product
      * @throws ValidationException
      */
-    private function processWineProduct(ScheduledWineProduct $scheduledProduct): int
+    private function processWineProduct(ScheduledWineProduct $scheduledProduct): ?WineProduct
     {
-        // Get the catalog page
-        $shopWines = ShopWinesPage::get()->first();
-
         // First find the wine product by forecast group
+        /** @var WineProduct $wineProduct */
         $wineProduct = WineProduct::get()
             ->filter('ForecastGroup', $scheduledProduct->ForecastGroup)
             ->first();
 
-        if ($wineProduct && $wineProduct->exists()) {
+        if ($wineProduct) {
             // Updated product
             $this->ProductsUpdated++;
+
+            $wineProduct->PackSize = $scheduledProduct->PackSize;
         } else {
             // Create a new WineProduct in draft mode
             $wineProduct = WineProduct::create();
 
             $wineProduct->update([
                 'Title'         => $scheduledProduct->Description,
-                'ForecastGroup' => $scheduledProduct->ForecastGroup
+                'ForecastGroup' => $scheduledProduct->ForecastGroup,
+                'PackSize'      => $scheduledProduct->PackSize ?: 6
             ]);
 
             // If we have a parent
-            if ($shopWines && $shopWines->exists()) {
+            $shopWines = ShopWinesPage::get()->first();
+            if ($shopWines) {
                 $wineProduct->setField('ParentID', $shopWines->ID);
             }
 
@@ -195,80 +200,66 @@ class ProcessProducts
 
         // Process the price
         if ($scheduledProduct->BasePrice > 0) {
-            $moneyFormattedPrice = str_replace('.', '', $scheduledProduct->BasePrice);
-
-            $wineProduct->setField('BasePriceAmount', $moneyFormattedPrice);
-            $wineProduct->setField('BasePriceCurrency', 'NZD');
+            $wineProduct
+                ->BasePrice
+                ->setFromDollars($scheduledProduct->BasePrice, 'NZD');
         }
 
-        // Enough info to write
-        $wineProduct->write();
-
-        // If the wine product has been published in the past, it should be safe to re-publish
-        if ($wineProduct->isPublished()) {
-            $wineProduct->publishRecursive();
+        // Process the pack price
+        if ($scheduledProduct->PackPrice > 0) {
+            $wineProduct
+                ->PackPrice
+                ->setFromDollars($scheduledProduct->PackPrice, 'NZD');
         }
 
+        $this->publish($wineProduct);
 
         // Processed ID is returned
-        return $wineProduct->ID;
+        return $wineProduct;
     }
 
     /**
      * Processes variations
      *
      * @param ScheduledWineVariation $scheduledWineVariation
-     * @param int $wineProductID
-     * @throws FlowException
+     * @param int                    $wineProductID
+     * @throws FlowException|ValidationException
+     * @throws Exception
      */
     private function processWineVariation(ScheduledWineVariation $scheduledWineVariation, int $wineProductID)
     {
         // We should only process the variation if we have a valid wine product ID
-        if ($wineProductID > 0) {
-            // Process the variation - first find the wine product
-            /** @var WineProduct $wineProduct */
-            $wineProduct = WineProduct::get()->byID($wineProductID);
-
-            if ($wineProduct && $wineProduct->exists()) {
-                // Get the "Vintage" attribute
-                $vintageAttribute = ProductAttribute::get()->filter([
-                    'Title'     => 'Vintage',
-                    'ProductID' => $wineProductID
-                ])->first();
-
-                // Do we have a Product Attribute Option with the right title?
-//                $productAttributeOption = ProductAttributeOption::get()->filter([
-//                    'Title'              => $scheduledWineVariation->Title,
-//                    'ProductAttributeID' => $vintageAttribute->ID
-//                ])->first();
-
-
-                // Find the variation
-                /** @var ComplexProductVariation $wineProductVariation */
-                $wineProductVariation = $wineProduct->ProductVariations()->filter([
-                    'SKU' => $scheduledWineVariation->SKU
-                ])->first();
-
-                if (!$wineProductVariation) {
-                    $wineProductVariation = $this->createWineVariation($scheduledWineVariation, $wineProductID);
-                    $wineProduct->ProductVariations()->add($wineProductVariation);
-                    $wineProductVariation->write();
-                }
-            } else {
-                throw new FlowException('Wine product not found');
-            }
-        } else {
+        if (!$wineProductID) {
             throw new FlowException('Missing product ID');
+        }
+
+        // Process the variation - first find the wine product
+        /** @var WineProduct $wineProduct */
+        $wineProduct = WineProduct::get()->byID($wineProductID);
+        if (!$wineProduct) {
+            throw new FlowException('Wine product not found');
+        }
+
+        // Find the variation
+        /** @var ComplexProductVariation $wineProductVariation */
+        $wineProductVariation = $wineProduct->ProductVariations()->filter([
+            'SKU' => $scheduledWineVariation->SKU
+        ])->first();
+
+        if (!$wineProductVariation) {
+            $wineProductVariation = $this->createWineVariation($scheduledWineVariation, $wineProductID);
+            $wineProduct->ProductVariations()->add($wineProductVariation);
+            $this->publish($wineProductVariation);
         }
     }
 
     /**
      * @param ScheduledWineVariation $scheduledWineVariation
-     * @param int $wineProductID
+     * @param int                    $wineProductID
      * @return ComplexProductVariation
      * @throws Exception
      */
-    private function createWineVariation(ScheduledWineVariation $scheduledWineVariation, int $wineProductID)
+    private function createWineVariation(ScheduledWineVariation $scheduledWineVariation, int $wineProductID): ComplexProductVariation
     {
         // Get the corresponding variation type
         $vintageAttribute = ProductAttribute::get()->filter([
@@ -276,98 +267,76 @@ class ProcessProducts
             'ProductID' => $wineProductID
         ])->first();
 
-        if ($vintageAttribute && $vintageAttribute->exists()) {
-            $vintageAttributeID = $vintageAttribute->ID;
-        } else {
+        // Create vintage if not exists
+        if (!$vintageAttribute) {
             $vintageAttribute = ProductAttribute::create();
-
             $vintageAttribute->update([
                 'Title'     => $scheduledWineVariation->VariationType,
                 'ProductID' => $wineProductID
             ]);
-
-            $vintageAttributeID = $vintageAttribute->write();
-            $vintageAttribute->publishRecursive();
+            $this->publish($vintageAttribute);
         }
 
         // Do we have a Product Attribute Option with the right title?
+        /** @var ProductAttributeOption $productAttributeOption */
         $productAttributeOption = ProductAttributeOption::get()->filter([
             'Title'              => $scheduledWineVariation->Title,
-            'ProductAttributeID' => $vintageAttributeID
+            'ProductAttributeID' => $vintageAttribute->ID
         ])->first();
 
-
-        // Format the price modifier amount
-        $modifier = $scheduledWineVariation->PriceModifierAmount;
-
-        if ($modifier > 0) {
-            $modifier = str_replace('.', '', $modifier);
-        }
-
-        if ($productAttributeOption && $productAttributeOption->exists()) {
-            // Ensure price is updated
-            $productAttributeOption->setField('SKU', $scheduledWineVariation->SKU);
-            $productAttributeOption->setField('PriceModifierAmount', $modifier);
-
-            $productAttributeOption->write();
-
-            $productAttributeOptionID = $productAttributeOption->ID;
-        } else {
-            // Create it
+        // Bootstrap attribute option if not exists
+        if (!$productAttributeOption) {
             $productAttributeOption = ProductAttributeOption::create();
-
             $productAttributeOption->update([
-                'ClassName'             => ProductAttributeOption::class,
-                'Title'                 => $scheduledWineVariation->Title,
-                'ProductAttributeID'    => $vintageAttribute->ID,
-                'PriceModifierAmount'   => $modifier,
-                'PriceModifierCurrency' => 'NZD' // TODO: Use dynamic currency
+                'Title'              => $scheduledWineVariation->Title,
+                'ProductAttributeID' => $vintageAttribute->ID,
             ]);
-
-            $productAttributeOptionID = $productAttributeOption->write();
         }
 
-        $productAttributeOption->publishSingle();
+        // Update option with new field values
+        $productAttributeOption->setField('SKU', $scheduledWineVariation->SKU);
+        $productAttributeOption->PriceModifier->setFromDollars(
+            $scheduledWineVariation->PriceModifierAmount,
+            'NZD'
+        );
+
+        // mark for publish
+        $this->publish($productAttributeOption);
 
         // Get the options
         /** @var ComplexProductVariation_Options $variationOptions */
         $variationOptions = ComplexProductVariation_Options::get()
-            ->filter('ProductAttributeOptionID', $productAttributeOptionID)
+            ->filter('ProductAttributeOptionID', $productAttributeOption->ID)
             ->first();
 
         // if it exists, we need to check the variation
-        if ($variationOptions && $variationOptions->exists()) {
+        if ($variationOptions) {
             $wineProductVariation = $variationOptions->ComplexProductVariation();
 
             // Check it has a SKU
             /** @noinspection PhpUndefinedFieldInspection */
             if (!$wineProductVariation->SKU) {
                 $wineProductVariation->setField('SKU', $scheduledWineVariation->SKU);
-                $wineProductVariation->write();
-                $wineProductVariation->publishSingle();
             }
+
+            $this->publish($wineProductVariation);
         } else {
             // We're going to make a new one
             $wineProductVariation = ComplexProductVariation::create();
-
             $wineProductVariation->update([
                 'SKU'       => $scheduledWineVariation->SKU,
                 'ProductID' => $wineProductID
             ]);
 
-            $wineProductVariationID = $wineProductVariation->write();
-            $wineProductVariation->publishSingle();
+            $this->publish($wineProductVariation);
 
             // Now connect all the options to the attribute and variation
             $productVariationOptions = ComplexProductVariation_Options::create();
-
             $productVariationOptions->update([
-                'ComplexProductVariationID' => $wineProductVariationID,
-                'ProductAttributeOptionID'  => $productAttributeOptionID
+                'ComplexProductVariationID' => $wineProductVariation->ID,
+                'ProductAttributeOptionID'  => $productAttributeOption->ID
             ]);
-
-            // Write
-            $productVariationOptions->write();
+            $this->publish($productVariationOptions);
         }
 
 
@@ -398,41 +367,37 @@ class ProcessProducts
             $completedTask->addError($exception->getMessage());
             $completedTask->write();
 
-            throw new FlowException($e->getMessage(), $e->getCode());
+            throw new FlowException($exception->getMessage(), $exception->getCode());
         }
     }
 
     /**
      * @return bool
      * Deletes all the products that don't exist in the imported data table (ScheduledProduct)
+     *
+     * @todo - Check if this method is
+     *        - 1 safe to keep / fix
+     *        - 2 needed
      */
-    private function deleteOldProducts()
+    private function deleteOldProducts(): bool
     {
         // get distinct product sub systems from imported scheduled product data
         $scheduledProductIDs = ScheduledWineProduct::get()
             ->column('ForecastGroup');
 
-        // loop through current subsystems if not in import data then archive
-        $productsToDelete = WineProduct::get()->filter('ForecastGroup:not', $scheduledProductIDs);
+        // Safe guard $scheduledProductIDs accidentally being empty; This would delete the whole DB by accident
+        if (empty($scheduledProductIDs)) {
+            return true;
+        }
 
+        // loop through current subsystems if not in import data then archive
+        $productsToDelete = WineProduct::get()->exclude('ForecastGroup', $scheduledProductIDs);
         if ($productsToDelete->count() > 0) {
             /** @var WineProduct $product */
             foreach ($productsToDelete as $product) {
-                // Un-publish
-//                $product->doUnpublish();
+                $product->doUnpublish();
             }
-
             $this->ProductsDeleted += $productsToDelete->count();
-        }
-
-        // Publish products to clean up
-        $productsToPublish = WineProduct::get()->filter('ForecastGroup', $scheduledProductIDs);
-
-        /** @var WineProduct $product */
-        foreach ($productsToPublish as $product) {
-            if ($product->isPublished()) {
-                $product->publishRecursive();
-            }
         }
 
         return true;
@@ -443,7 +408,7 @@ class ProcessProducts
      * @return bool
      * Deletes all the products that don't exist in the imported data table (ScheduledProduct)
      */
-    private function deleteWineVariations()
+    private function deleteWineVariations(): bool
     {
         // get distinct product sub systems from imported scheduled product data
         $scheduledVariationSKUs = ScheduledWineVariation::get()

@@ -36,7 +36,7 @@ class ProcessProductsTask extends BuildTask implements CronTask
      */
     public function getSchedule()
     {
-        return "30 1 * * *"; // process after the product import has finished
+        return "30 10,14 * * *"; // process after the product import has finished
     }
 
     public function __construct()

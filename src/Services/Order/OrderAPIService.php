@@ -25,7 +25,8 @@ class OrderAPIService implements OrderServiceInterface
     protected $service;
 
     /**
-     * @param null $body
+     * @param string $body
+     * @param string $encoding
      * @return array
      */
     public function order($body = null, $encoding = 'utf-8')
@@ -35,6 +36,7 @@ class OrderAPIService implements OrderServiceInterface
 
     /**
      * @param string $body
+     * @param string $encoding
      * @return array
      */
     protected function postOrder($body, $encoding = 'utf-8')

@@ -54,12 +54,7 @@ class ProcessOrdersTask extends BuildTask implements CronTask
     public function process()
     {
         $flowService = new ProcessOrders();
-
-        try {
-            $flowService->runProcessData();
-        } catch (Exception $e) {
-            throw new FlowException($e->getMessage(), $e->getCode());
-        }
+        $flowService->runProcessData();
     }
 
     /**

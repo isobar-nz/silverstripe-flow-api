@@ -22,10 +22,12 @@ trait BasicAuthConnector
     abstract public function getBasicAuth();
 
     /**
-     * @param        $url
+     * @param string $url
      * @param null   $body
      * @param string $encoding
      * @return array
+     * @throws HTTPResponse_Exception
+     * @throws ValidationException
      */
     public function getRequest($url, $body = null, $encoding = 'utf-8'): array
     {
@@ -48,10 +50,11 @@ trait BasicAuthConnector
     /**
      * Make a request
      *
-     * @param string $url
-     * @param string $basicAuth
+     * @param string       $url
+     * @param string       $basicAuth
      * @param array|string $body
      *
+     * @param string       $encoding
      * @return array
      */
     protected function request($url, $basicAuth = null, $body = null, $encoding = 'utf-8'): array
@@ -67,7 +70,7 @@ trait BasicAuthConnector
     }
 
     /**
-     * @param null $basicAuth
+     * @param string $basicAuth
      * @return Client
      */
     protected function getClient($basicAuth = null)
@@ -89,11 +92,11 @@ trait BasicAuthConnector
     }
 
     /**
-     * @param        $url
-     * @param null   $basicAuth
-     * @param null   $body
-     * @param string $encoding
-     * @return mixed
+     * @param string      $url
+     * @param string|null $basicAuth
+     * @param string|null $body
+     * @param string      $encoding
+     * @return ResponseInterface
      */
     protected function rawRequest($url, $basicAuth = null, $body = null, $encoding = 'utf-8')
     {

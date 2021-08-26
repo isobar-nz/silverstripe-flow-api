@@ -23,6 +23,7 @@ use SilverStripe\ORM\FieldType\DBBoolean;
 use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\Security\Member;
+use SilverStripe\Versioned\Versioned;
 use SimpleXMLElement;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 use SwipeStripe\Coupons\Order\OrderCouponAddOn;
@@ -38,8 +39,8 @@ use SwipeStripe\Shipping\ShippingRegion;
  *
  * @package App\Flow\Order
  * @property Order|OrderExtension $owner
- * @property boolean $SentToFlow
- * @property boolean $Scheduled
+ * @property boolean              $SentToFlow
+ * @property boolean              $Scheduled
  */
 class OrderExtension extends DataExtension
 {
@@ -234,7 +235,7 @@ class OrderExtension extends DataExtension
             'ShipCountry'          => $shippingCountry,
             'ShipNotes'            => str_replace(["\n", "\r", '’', '>', '<'], ['', '', "'", '', ''], $this->owner->ShippingAddressNotes),
 
-            // Billing
+//            // Billing
             'BillFirstName'        => $this->owner->CustomerName,
             'BillSurname'          => '',
             'BillCompany'          => '',
@@ -246,8 +247,6 @@ class OrderExtension extends DataExtension
             'BillState'            => $billingAddressRegion,
             'BillCountry'          => $billingCountry,
             'BillNotes'            => $this->owner->BillingAddressNotes,
-
-//            'orderLines' => ''
         ];
 
         // Coupon
@@ -309,7 +308,6 @@ class OrderExtension extends DataExtension
         }
 
         // Build up the order
-
         $xmlDocument = new DOMDocument();
         $xmlDocument->version = '1.0';
         $xmlDocument->encoding = 'UTF-16';
@@ -320,7 +318,6 @@ class OrderExtension extends DataExtension
                 // Ensure negative values are parsed correctly
                 $value = abs($value);
             }
-
             $orderPropertyValue = $xmlDocument->createTextNode((string)$value);
             $orderProperty = $xmlDocument->createElement($key);
             $orderProperty->appendChild($orderPropertyValue);
@@ -341,7 +338,35 @@ class OrderExtension extends DataExtension
 
             // Get the SKU
             if ($product instanceof ComplexProductVariation) {
-                $sku = $product->SKU;
+                $sku = $product->SKU ? $product->SKU : $product->Product()->ForecastGroup;
+
+                // Change to live ProductAttributeOptions rather than the archived one as
+                // there are issues with lastEdited date on versions.
+                $currStage = Versioned::get_stage();
+                Versioned::set_stage(Versioned::LIVE);
+
+                $option = $product->ProductAttributeOptions()->filter([
+                    'ProductAttribute.Title' => 'Pack'
+                ])->exclude([
+                    'Title' => '1'
+                ])->first();
+
+                Versioned::set_stage($currStage);
+
+                // Additionally, if this is a Pack, change the quantity to match the number of bottles
+                if ($option) {
+                    // Try and get the number of items, as an int
+                    if (is_numeric($option->Title)) {
+                        $packSize = (int)$option->Title;
+                        // A pack of 6 should pass through 6 bottles
+                        // And the unit price should be for 1 bottle
+                        if ($packSize > 1) {
+                            $quantity = $orderItem->Quantity * $packSize;
+                            $price = $price / $packSize;
+                        }
+                    }
+                }
+
             } elseif ($product->ForecastGroup) {
                 $sku = $product->ForecastGroup;
             }
@@ -374,7 +399,6 @@ class OrderExtension extends DataExtension
                 $validOrderItems = true;
             }
         }
-
         $xmlDocument->appendChild($xmlOrder);
 
         // Extend here to add additional XML
@@ -387,5 +411,4 @@ class OrderExtension extends DataExtension
 
         return $xmlDocument->saveXML();
     }
-
 }

@@ -10,7 +10,7 @@ namespace Isobar\Flow\Services\Connector;
 interface Connector
 {
     /**
-     * @param        $url
+     * @param string $url
      * @param null   $body
      * @param string $encoding
      * @return array

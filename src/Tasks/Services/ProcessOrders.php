@@ -3,13 +3,13 @@
 
 namespace Isobar\Flow\Tasks\Services;
 
+use App\Pages\MediaPages\WineClubEvent;
 use Exception;
 use Isobar\Flow\Exception\FlowException;
+use Isobar\Flow\Model\ScheduledOrder;
 use Isobar\Flow\Services\FlowAPIConnector;
 use Isobar\Flow\Services\FlowStatus;
-use Isobar\Flow\Model\ScheduledOrder;
 use Isobar\Flow\Services\Product\OrderAPIService;
-use App\Pages\MediaPages\WineClubEvent;
 use SwipeStripe\Order\Order;
 use SwipeStripe\Order\Status\OrderStatus;
 use SwipeStripe\Order\Status\OrderStatusUpdate;
@@ -39,7 +39,7 @@ class ProcessOrders
         try {
             $this->processOrders();
         } catch (Exception $e) {
-            throw new FlowException($e->getMessage(), $e->getMessage());
+            throw new FlowException($e->getMessage(), $e->getCode(), $e);
         }
 
         echo "\nCompleted processing orders\n\n";

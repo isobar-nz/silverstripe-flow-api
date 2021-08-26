@@ -49,6 +49,7 @@ class PricingAPIService implements ProductServiceInterface
                     'forecastGroup'           => $product['forecastGroup'],
                     'productCode'             => $product['productCode'],
                     'priceGroup'              => $product['priceGroup'],
+                    'retailPriceCase'         => $product['retailPriceCase'],
                     'currentSellingPriceUnit' => $product['currentSellingPriceUnit']
                 ];
             }

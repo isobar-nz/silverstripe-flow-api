@@ -61,26 +61,20 @@ class ScheduledOrder_ItemRequest extends GridFieldDetailForm_ItemRequest
     public function doSendToFlow($data, $form)
     {
         // Save from form data
-        $xmlData = $this->record->XmlData;
+        $xmlData = $this->record->getXmlData();
 
         if ($xmlData === false) {
             // Do not send invalid data
             $message = 'Order has no valid Flow products. Completed successfully but not sent to Flow.';
         } else {
+            $api = OrderAPIService::singleton();
 
-            try {
-                $api = OrderAPIService::singleton();
+            $connector = singleton(FlowAPIConnector::class);
+            $api->setConnector($connector);
 
-                $connector = singleton(FlowAPIConnector::class);
-                $api->setConnector($connector);
+            $result = $api->order($xmlData, 'UTF-16');
 
-                $result = $api->order($xmlData);
-
-                $message = 'Sent order to Flow.';
-            } catch (Exception $e) {
-                $form->sessionMessage('An error occurred: ' . $e->getMessage(), ValidationResult::TYPE_ERROR, ValidationResult::CAST_HTML);
-                throw new FlowException($e->getMessage(), $e->getCode());
-            }
+            $message = 'Sent order to Flow.';
         }
 
         $this->record->setField('Status', FlowStatus::COMPLETED);
