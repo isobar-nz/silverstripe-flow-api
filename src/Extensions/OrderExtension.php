@@ -23,6 +23,7 @@ use SilverStripe\ORM\FieldType\DBBoolean;
 use SilverStripe\ORM\FieldType\DBVarchar;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\Security\Member;
+use SilverStripe\Versioned\Versioned;
 use SimpleXMLElement;
 use SwipeStripe\Common\Product\ComplexProduct\ComplexProductVariation;
 use SwipeStripe\Coupons\Order\OrderCouponAddOn;
@@ -339,11 +340,18 @@ class OrderExtension extends DataExtension
             if ($product instanceof ComplexProductVariation) {
                 $sku = $product->SKU ? $product->SKU : $product->Product()->ForecastGroup;
 
+                // Change to live ProductAttributeOptions rather than the archived one as
+                // there are issues with lastEdited date on versions.
+                $currStage = Versioned::get_stage();
+                Versioned::set_stage(Versioned::LIVE);
+
                 $option = $product->ProductAttributeOptions()->filter([
                     'ProductAttribute.Title' => 'Pack'
                 ])->exclude([
                     'Title' => '1'
                 ])->first();
+
+                Versioned::set_stage($currStage);
 
                 // Additionally, if this is a Pack, change the quantity to match the number of bottles
                 if ($option) {
